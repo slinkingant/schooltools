@@ -3,7 +3,7 @@
    - Iconen en manifest: uit de cache.
    - Google Fonts: uit de cache, op de achtergrond bijgewerkt.
    Verhoog VERSION bij een wijziging in dit bestand of in de lijst met vaste bestanden. */
-const VERSION = 'tafelheld-v1';
+const VERSION = 'tafelheld-v2';
 const SHELL = [
   '/tafelheld.html',
   '/tafelheld.webmanifest',
@@ -11,7 +11,7 @@ const SHELL = [
   '/icons/tafelheld-512.png',
   '/icons/tafelheld-maskable-512.png',
   '/icons/tafelheld-180.png',
-  '/icons/tafelheld.svg'
+  '/icons/tafelheld-64.png'
 ];
 const FONTS = 'tafelheld-fonts';
 

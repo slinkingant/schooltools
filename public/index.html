@@ -105,6 +105,13 @@
     font-size: 30px;
     background: color-mix(in srgb, var(--accent) 16%, transparent);
   }
+  .logo {
+    width: 96px; height: 96px; border-radius: 22px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 10px rgba(31,36,48,.18));
+    transition: transform .15s ease;
+  }
+  .card:hover .logo { transform: rotate(-3deg) scale(1.04); }
   .card h2 { font-size: 22px; margin: 0; }
   .card p { margin: 0; color: var(--muted); flex: 1; }
   .meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -168,6 +175,7 @@
       title: "Tafelheld",
       desc: "Oefen de tafels van vermenigvuldiging en word een echte tafelheld.",
       icon: "✖️",
+      img: "icons/tafelheld-logo-256.webp",
       color: "#f59e0b",
       tag: "Rekenen"
     },
@@ -183,7 +191,9 @@
       <a class="card${t.soon ? " soon" : ""}" href="${t.soon ? "#" : esc(t.file)}"
          style="--accent:${esc(t.color || "#f59e0b")}"
          ${t.soon ? 'aria-disabled="true" tabindex="-1"' : ""}>
-        <div class="icon" aria-hidden="true">${esc(t.icon)}</div>
+        ${t.img
+          ? `<img class="logo" src="${esc(t.img)}" alt="" width="256" height="256">`
+          : `<div class="icon" aria-hidden="true">${esc(t.icon)}</div>`}
         <h2>${esc(t.title)}</h2>
         <p>${esc(t.desc)}</p>
         <div class="meta">

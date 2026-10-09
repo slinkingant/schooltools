@@ -12,7 +12,7 @@ Tafelheld is installeerbaar als app en werkt ook zonder internet.
 
 - `public/tafelheld.webmanifest` — naam, kleuren, iconen; start op `/tafelheld.html`.
 - `public/tafelheld-sw.js` — service worker: de app wordt eerst via het netwerk geladen (zodat updates direct binnenkomen) en valt offline terug op de bewaarde versie; iconen en lettertypes komen uit de cache.
-- `public/icons/` — app-iconen (192, 512, maskable 512, Apple 180 en SVG).
+- `public/icons/` — het Tafelheld-logo als app-icoon (192, 512, maskable 512, Apple 180, favicon 64) en als kaartplaatje voor de startpagina (`tafelheld-logo-256.webp`).
 - `public/_headers` — zorgt dat de service worker en het manifest niet lang in de browsercache blijven hangen.
 
 Installeren op de iPad: open https://school.1394.nl/tafelheld.html in Safari → Deel → **Zet op beginscherm**.
