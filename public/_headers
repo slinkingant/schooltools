@@ -1,0 +1,7 @@
+/tafelheld-sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /
+
+/tafelheld.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: no-cache

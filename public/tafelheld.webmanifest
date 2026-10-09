@@ -1,0 +1,21 @@
+{
+  "id": "/tafelheld",
+  "name": "Tafelheld",
+  "short_name": "Tafelheld",
+  "description": "Oefen de tafels van vermenigvuldiging: niveaus, door elkaar, minuut-quiz, herhalen met FSRS en de meestertoets.",
+  "lang": "nl",
+  "dir": "ltr",
+  "start_url": "/tafelheld.html",
+  "scope": "/tafelheld",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#E9F5FF",
+  "theme_color": "#E9F5FF",
+  "categories": ["education", "kids"],
+  "icons": [
+    { "src": "/icons/tafelheld-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/tafelheld-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/tafelheld-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/tafelheld.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
