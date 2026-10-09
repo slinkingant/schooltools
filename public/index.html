@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schooltools</title>
+<meta name="description" content="Kleine oefentools voor school.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎒</text></svg>">
+<style>
+  /* =========================================================
+     NIEUWE TOOL TOEVOEGEN?
+     Zet het .html-bestand in dezelfde map en voeg onderaan
+     in de TOOLS-lijst één regel toe. Klaar.
+     ========================================================= */
+
+  :root {
+    --bg: #fbf7f0;
+    --surface: #ffffff;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --border: #ece6da;
+    --shadow: 0 1px 2px rgba(31,36,48,.06), 0 8px 24px rgba(31,36,48,.06);
+    --shadow-hover: 0 2px 4px rgba(31,36,48,.08), 0 14px 32px rgba(31,36,48,.12);
+    --radius: 20px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15171c;
+      --surface: #1f2229;
+      --text: #f1f2f4;
+      --muted: #9aa1ad;
+      --border: #2c3039;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+      --shadow-hover: 0 2px 4px rgba(0,0,0,.35), 0 14px 32px rgba(0,0,0,.4);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+  }
+
+  main {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 56px 16px 32px;
+    flex: 1;
+  }
+
+  header { margin-bottom: 36px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600; color: var(--muted);
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 999px;
+  }
+  h1 {
+    font-size: clamp(32px, 6vw, 48px);
+    line-height: 1.1;
+    margin: 16px 0 8px;
+    letter-spacing: -0.02em;
+  }
+  .intro { color: var(--muted); font-size: 18px; margin: 0; max-width: 40ch; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+    list-style: none;
+    padding: 0; margin: 0;
+  }
+
+  .card {
+    --accent: #f59e0b;
+    display: flex; flex-direction: column; gap: 14px;
+    height: 100%;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    color: inherit; text-decoration: none;
+    position: relative; overflow: hidden;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .card::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 6px;
+    background: var(--accent);
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+  .card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  .icon {
+    width: 56px; height: 56px; border-radius: 16px;
+    display: grid; place-items: center;
+    font-size: 30px;
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+  .card h2 { font-size: 22px; margin: 0; }
+  .card p { margin: 0; color: var(--muted); flex: 1; }
+  .meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .tag {
+    font-size: 13px; font-weight: 600;
+    color: color-mix(in srgb, var(--accent) 75%, var(--text));
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    padding: 4px 10px; border-radius: 999px;
+  }
+  .go {
+    font-weight: 700; font-size: 15px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .go span { transition: transform .15s ease; }
+  .card:hover .go span { transform: translateX(3px); }
+
+  .card.soon { pointer-events: none; opacity: .6; box-shadow: none; border-style: dashed; }
+  .card.soon::before { display: none; }
+
+  footer {
+    text-align: center; color: var(--muted); font-size: 14px;
+    padding: 24px 16px 32px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card, .go span { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="badge">🎒 1394.nl</span>
+    <h1>Schooltools</h1>
+    <p class="intro">Kies een oefening en ga aan de slag!</p>
+  </header>
+
+  <ul class="grid" id="tools"></ul>
+
+  <noscript>
+    <p><a href="tafelheld.html">Tafelheld</a></p>
+  </noscript>
+</main>
+
+<footer>Gemaakt met ❤️ voor school</footer>
+
+<script>
+  // ---------------------------------------------------------
+  // TOOLS: voeg hier een regel toe voor elke nieuwe tool.
+  //   file  = bestandsnaam in dezelfde map
+  //   title = naam op de kaart
+  //   desc  = korte uitleg
+  //   icon  = emoji
+  //   color = accentkleur van de kaart
+  //   tag   = (optioneel) vak of groep, bv. "Rekenen"
+  //   soon  = (optioneel) true = "binnenkort", niet klikbaar
+  // ---------------------------------------------------------
+  const TOOLS = [
+    {
+      file: "tafelheld.html",
+      title: "Tafelheld",
+      desc: "Oefen de tafels van vermenigvuldiging en word een echte tafelheld.",
+      icon: "✖️",
+      color: "#f59e0b",
+      tag: "Rekenen"
+    },
+    // { file: "klokkijken.html", title: "Klokkijken", desc: "Leer hoe laat het is.", icon: "🕒", color: "#3b82f6", tag: "Rekenen" },
+    // { file: "spelling.html",   title: "Spelling",   desc: "Oefen lastige woorden.", icon: "✏️", color: "#10b981", tag: "Taal", soon: true },
+  ];
+
+  const list = document.getElementById("tools");
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  list.innerHTML = TOOLS.map(t => `
+    <li>
+      <a class="card${t.soon ? " soon" : ""}" href="${t.soon ? "#" : esc(t.file)}"
+         style="--accent:${esc(t.color || "#f59e0b")}"
+         ${t.soon ? 'aria-disabled="true" tabindex="-1"' : ""}>
+        <div class="icon" aria-hidden="true">${esc(t.icon)}</div>
+        <h2>${esc(t.title)}</h2>
+        <p>${esc(t.desc)}</p>
+        <div class="meta">
+          ${t.tag ? `<span class="tag">${esc(t.tag)}</span>` : "<span></span>"}
+          <span class="go">${t.soon ? "Binnenkort" : "Start <span>→</span>"}</span>
+        </div>
+      </a>
+    </li>`).join("");
+</script>
+</body>
+</html>

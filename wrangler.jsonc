@@ -1,0 +1,8 @@
+{
+  "name": "schooltools",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./public" },
+  "routes": [
+    { "pattern": "school.1394.nl", "custom_domain": true }
+  ]
+}
