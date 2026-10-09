@@ -614,21 +614,8 @@ const stars3=n=>[0,1,2].map(i=>`<span class="star ${i<n?'':'off'}">★</span>`).
 function starRow(after,before=99,delay=0){return[0,1,2,3,4].map(i=>{const on=i<after,nw=on&&i>=before;return`<span class="star ${on?'':'off'}${nw?' new':''}"${nw?` style="animation-delay:${(delay+(i-before)*.35).toFixed(2)}s"`:''}>★</span>`}).join('')}
 const dots=n=>`<span class="dots">${[0,1,2].map(i=>`<i class="dot${i<n?' on':''}"></i>`).join('')}</span>`;
 
-/* ---------- overzetten van oude voortgang (eenmalig) ---------- */
-function migrate(p){
-  if(p.tables)return;p.tables={};const now=Date.now(),n=NT(p);
-  const was=f=>!!f&&((f.S&&f.S>=7)||mastered(f));
-  for(let b=1;b<=12;b++){
-    const arr=RN(n).map(a=>p.facts['x'+a+'-'+b]).filter(f=>f&&f.g+f.f);if(!arr.length)continue;
-    const lr=Math.max(...arr.map(f=>f.l||f.lr||now-2*DAY)),L=(p.levels&&p.levels[b])||[];
-    const t=newT();t.lr=lr;t.D=5;t.state=2;
-    if(RN(n).every(a=>was(p.facts['x'+a+'-'+b]))){t.S=14;t.stars=3;t.reps=5}
-    else if((L[1]||0)>=2||arr.filter(was).length>=Math.ceil(n*.6)){t.S=3;t.stars=2;t.reps=3}
-    else{t.S=.5;t.stars=1;t.reps=1;t.state=1}
-    t.due=t.state===1?lr+HOUR:lr+Math.round(t.S)*DAY;p.tables[b]=t}
-}
 function makeDemo(){
-  const p=makeProfile('Voorbeeld','#8B5CF6');delete p.tables;p.demo=true;let seed=11;const r=()=>(seed=seed*16807%2147483647)/2147483647;
+  const p=makeProfile('Voorbeeld','#8B5CF6');p.demo=true;let seed=11;const r=()=>(seed=seed*16807%2147483647)/2147483647;
   for(let b=1;b<=12;b++){const sk=[1,2,5,10,11].includes(b)?.97:b<=4?.9:b<=6?.78:b<=8?.6:b===9?.7:-1;if(sk<0)continue;
     for(let a=1;a<=12;a++){const f={g:0,f:0,t:0,s:0};const n=2+Math.floor(r()*6);for(let i=0;i<n;i++){if(r()<sk){f.g++;f.s++;f.t+=1200+r()*(sk>.85?2200:4500)}else{f.f++;f.s=0}}
       p.facts['x'+a+'-'+b]=f;
@@ -638,10 +625,18 @@ function makeDemo(){
   const now=Date.now();
   p.sessions=[{d:now-DAY*.2,mode:'quiz',label:'Minuut-quiz · Keer · 1–10',good:17,bad:3,ms:6e4},{d:now-DAY*1,mode:'level',label:'Tafel van 7 · Op volgorde',good:8,bad:2,ms:9e4},{d:now-DAY*1.1,mode:'shuffle',label:'Door elkaar · Keer · 3–6',good:18,bad:4,ms:15e4},{d:now-DAY*3,mode:'mastery',label:'Meestertoets tafel van 2 · gehaald',good:50,bad:0,ms:31e4},{d:now-DAY*4,mode:'quiz',label:'Minuut-quiz · Keer · 1, 2, 5, 10',good:26,bad:1,ms:6e4}];
   p.ms=47*6e4;
-  migrate(p);
-  Object.assign(getT(p,2),{passed:true,S:30,D:3,stars:5,state:2,reps:9,lr:now-3*DAY,due:now+27*DAY});
-  Object.assign(getT(p,10),{S:16,D:3,stars:3,state:2,reps:6,lr:now-2*DAY,due:now+14*DAY});
-  Object.assign(getT(p,6),{due:now-2*HOUR});Object.assign(getT(p,7),{due:now-5*HOUR});
+  /* voorbeeld-tafelsterren: van net begonnen tot Meester */
+  const T=(b,o)=>{p.tables[b]=Object.assign(newT(),{D:5,state:2,lr:now-2*DAY},o)};
+  T(1,{S:14,stars:3,reps:5,due:now+12*DAY});
+  T(2,{passed:true,S:30,D:3,stars:5,reps:9,lr:now-3*DAY,due:now+27*DAY});
+  T(5,{S:9,stars:3,reps:4,due:now+7*DAY});
+  T(10,{S:16,D:3,stars:3,reps:6,due:now+14*DAY});
+  T(3,{S:3,stars:2,reps:3,due:now+DAY});
+  T(4,{S:3,stars:2,reps:3,due:now+DAY});
+  T(9,{S:1.5,stars:2,reps:2,state:1,step:1,due:now+6*HOUR});
+  T(6,{S:.5,stars:1,reps:1,state:1,due:now-2*HOUR});
+  T(8,{S:.5,stars:1,reps:1,state:1,due:now-HOUR});
+  T(7,{S:.5,stars:1,reps:1,state:1,due:now-5*HOUR});
   return p}
 
 /* ---------- geluid ---------- */
@@ -961,7 +956,7 @@ $('#confirmYes').onclick=()=>{const p=S.profiles.find(x=>x.id===stProf);if(!p)re
 
 /* ---------- start ---------- */
 if(!S.profiles.length)S.profiles.push(makeDemo());
-S.profiles.forEach(migrate);save();
+S.profiles.forEach(p=>{if(!p.tables)p.tables={}});save();
 /* eerst de profielen tonen; versiering pas daarna, zodat een fout daarin het scherm niet leeg laat */
 renderProfiles();
 if(prof()){renderMenu();show('s-menu')}else show('s-profiles');
