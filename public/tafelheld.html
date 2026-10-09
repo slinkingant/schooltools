@@ -291,6 +291,7 @@ h3{font-size:1.3rem;font-weight:700}
 @media (max-width:560px){.trow{grid-template-columns:84px minmax(0,1fr)}.trow .tinfo{grid-column:1/-1}}
 .installnote{margin-top:40px;padding:18px 20px;border-radius:20px;border:2px dashed var(--line);background:color-mix(in srgb,var(--card) 70%,transparent);font-size:.92rem;display:flex;flex-direction:column;gap:10px}
 .installnote h3{font-size:1.15rem}
+.homebtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);font-weight:600;box-sizing:border-box}
 .installnote p{margin:0}
 .installcols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 @media (max-width:560px){.installcols{grid-template-columns:1fr}}
@@ -318,7 +319,10 @@ h3{font-size:1.3rem;font-weight:700}
 
 <!-- PROFIELEN -->
 <section class="screen" id="s-profiles">
-  <div class="hero"><svg class="mascot" data-mascot viewBox="0 0 100 100"></svg><h1 class="logo" aria-label="Tafelheld"><span>T</span><span>a</span><span>f</span><span>e</span><span>l</span><span>h</span><span>e</span><span>l</span><span>d</span></h1></div>
+  <div class="topbar">
+    <div class="hero"><svg class="mascot" data-mascot viewBox="0 0 100 100"></svg><h1 class="logo" aria-label="Tafelheld"><span>T</span><span>a</span><span>f</span><span>e</span><span>l</span><span>h</span><span>e</span><span>l</span><span>d</span></h1></div>
+    <a class="btn ghost small homebtn" data-home href="https://school.1394.nl/" hidden>← Schooltools</a>
+  </div>
   <p class="muted" style="font-size:1.1rem">Wie gaat er oefenen? Tik op je naam.</p>
   <div class="profiles" id="profList"></div>
   <div class="panel stack" id="newProf" hidden style="margin-top:24px">
@@ -333,7 +337,7 @@ h3{font-size:1.3rem;font-weight:700}
 <section class="screen" id="s-menu" hidden>
   <div class="topbar">
     <div class="who"><span class="av sm" id="mAv"></span><div><h2 id="mHello"></h2><div class="muted" id="mSub"></div></div></div>
-    <div class="row"><button class="btn ghost small" id="soundBtn"></button><button class="btn ghost small" id="switchBtn">Ander kind</button></div>
+    <div class="row"><button class="btn ghost small" id="soundBtn"></button><button class="btn ghost small" id="switchBtn">Ander kind</button><a class="btn ghost small homebtn" data-home href="https://school.1394.nl/" hidden>← Schooltools</a></div>
   </div>
   <div class="tiles">
     <button class="tile c5 wide" data-go="mastery" id="mtTile" hidden><span class="sum">Meestertoets</span><h3 id="mtTileT"></h3><p>50 sommen, allemaal goed? Dan verdien je ster 4!</p></button>
@@ -654,6 +658,8 @@ const isApp=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches
 const installable=!!document.querySelector('link[rel="manifest"]')&&!isApp;
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const isAndroid=/Android/i.test(navigator.userAgent);
+/* knop terug naar het overzicht van schooltools: alleen op de eigen website */
+document.querySelectorAll('[data-home]').forEach(a=>{a.hidden=!document.querySelector('link[rel="manifest"]')});
 (function markOS(){const os=isIOS?'ios':isAndroid?'android':null;if(!os)return;const col=document.querySelector(`.installcols [data-os="${os}"]`);if(col){col.classList.add('mine');col.querySelector('b').insertAdjacentHTML('afterend','<span class="here">jouw apparaat</span>')}})();
 let installEvt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;$('#installBtn').hidden=false});
