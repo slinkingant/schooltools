@@ -289,6 +289,14 @@ h3{font-size:1.3rem;font-weight:700}
 .trow{display:grid;grid-template-columns:84px 130px minmax(0,1fr);gap:12px;align-items:center;padding:9px 0;border-bottom:2px dotted var(--line);font-size:.92rem}
 .trow:last-child{border-bottom:0}
 @media (max-width:560px){.trow{grid-template-columns:84px minmax(0,1fr)}.trow .tinfo{grid-column:1/-1}}
+.installnote{margin-top:40px;padding:18px 20px;border-radius:20px;border:2px dashed var(--line);background:color-mix(in srgb,var(--card) 70%,transparent);font-size:.92rem;display:flex;flex-direction:column;gap:10px}
+.installnote h3{font-size:1.15rem}
+.installnote p{margin:0}
+.installcols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:560px){.installcols{grid-template-columns:1fr}}
+.installcols ol{margin:6px 0 0;padding-left:1.25em;display:flex;flex-direction:column;gap:3px}
+.installcols .mine{order:-1}
+.installnote .here{font-size:.72rem;background:var(--sky);color:#fff;border-radius:99px;padding:1px 8px;margin-left:6px;font-weight:600;vertical-align:2px}
 .mtinfo{text-align:left;max-width:560px}
 .mtinfo ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
@@ -438,6 +446,26 @@ h3{font-size:1.3rem;font-weight:700}
     </div>
   </div>
 </section>
+
+<!-- VOETNOOT: app op het beginscherm zetten (alleen op de eigen website, niet als de app al geïnstalleerd is) -->
+<aside class="installnote" id="installNote" hidden>
+  <h3>Tafelheld als app op je tablet of telefoon</h3>
+  <p class="muted">Dan start Tafelheld met één tik vanaf het beginscherm, zonder adresbalk, en werkt hij ook zonder internet.</p>
+  <div><button class="btn primary small" id="installBtn" hidden>Installeer als app</button></div>
+  <div class="installcols">
+    <div data-os="ios"><b>iPad en iPhone</b><ol>
+      <li>Open deze pagina in <b>Safari</b>.</li>
+      <li>Tik op <b>Deel</b>: het vierkantje met de pijl omhoog (op de iPad rechtsboven, op de iPhone onderin).</li>
+      <li>Kies <b>Zet op beginscherm</b> en tik op <b>Voeg toe</b>.</li>
+    </ol><p class="muted" style="margin-top:6px">Let op: wat in Safari is geoefend, verhuist niet mee naar de app. Begin daarom meteen in de app.</p></div>
+    <div data-os="android"><b>Android</b><ol>
+      <li>Open deze pagina in <b>Chrome</b>.</li>
+      <li>Tik op de knop <b>Installeer als app</b> hierboven, of op het menu <b>⋮</b> rechtsboven.</li>
+      <li>Kies <b>App installeren</b> of <b>Toevoegen aan startscherm</b>.</li>
+    </ol></div>
+  </div>
+  <p class="muted">Open de app één keer met internet, daarna werkt hij ook offline. De voortgang wordt alleen op dit apparaat bewaard.</p>
+</aside>
 
 </div>
 
@@ -619,7 +647,18 @@ const beep=ok=>ok?tone([784,1175],'triangle',.08,.18):tone([300,220],'sine',.1,.
 const fanfare=()=>tone([523,659,784,1047],'triangle',.11,.2);
 
 /* ---------- schermen ---------- */
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id);window.scrollTo(0,0)}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id);$('#installNote').hidden=!(installable&&(id==='s-profiles'||id==='s-menu'));window.scrollTo(0,0)}
+
+/* ---------- installeren als app ---------- */
+const isApp=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+const installable=!!document.querySelector('link[rel="manifest"]')&&!isApp;
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isAndroid=/Android/i.test(navigator.userAgent);
+(function markOS(){const os=isIOS?'ios':isAndroid?'android':null;if(!os)return;const col=document.querySelector(`.installcols [data-os="${os}"]`);if(col){col.classList.add('mine');col.querySelector('b').insertAdjacentHTML('afterend','<span class="here">jouw apparaat</span>')}})();
+let installEvt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;$('#installBtn').hidden=false});
+$('#installBtn').onclick=async()=>{if(!installEvt)return;installEvt.prompt();try{await installEvt.userChoice}catch(e){}installEvt=null;$('#installBtn').hidden=true};
+window.addEventListener('appinstalled',()=>{$('#installNote').hidden=true});
 document.addEventListener('click',e=>{if(e.target.closest('[data-back]')){renderMenu();show('s-menu')}});
 
 /* Profielen */
