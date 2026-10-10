@@ -7,6 +7,10 @@ Kleine oefentools voor school, gehost op https://school.1394.nl via Cloudflare W
 2. Voeg een regel toe aan de `TOOLS`-lijst onderaan `public/index.html`.
 3. Commit en push naar `main` — Cloudflare deployt automatisch.
 
+## Privacy
+Alle voortgang staat in de browseropslag (localStorage) van het apparaat; er zijn geen cookies, geen accounts, geen analytics en geen verbindingen met andere websites.
+De lettertypes (Baloo 2 en Lexend, SIL Open Font License) staan daarom in `public/fonts/` in plaats van bij Google Fonts. Gebruik in nieuwe tools ook die bestanden.
+
 ## Tafelheld als app (PWA)
 Tafelheld is installeerbaar als app en werkt ook zonder internet.
 

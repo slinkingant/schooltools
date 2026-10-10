@@ -131,6 +131,19 @@
   .card.soon { pointer-events: none; opacity: .6; box-shadow: none; border-style: dashed; }
   .card.soon::before { display: none; }
 
+  .privacy {
+    margin-top: 40px;
+    padding: 20px 24px;
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-size: 15px;
+  }
+  .privacy h2 { font-size: 18px; margin: 0 0 8px; color: var(--text); }
+  .privacy ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+  .privacy b { color: var(--text); }
+
   footer {
     text-align: center; color: var(--muted); font-size: 14px;
     padding: 24px 16px 32px;
@@ -154,6 +167,16 @@
   <noscript>
     <p><a href="tafelheld.html">Tafelheld</a> · <a href="sommenheld.html">Sommenheld</a></p>
   </noscript>
+
+  <section class="privacy" aria-labelledby="privacy-title">
+    <h2 id="privacy-title"><span aria-hidden="true">🔒</span> Privacy</h2>
+    <ul>
+      <li>Alle voortgang en statistieken worden <b>alleen op dit apparaat</b> bewaard, in de opslag van je browser. Er gaat niets naar een server.</li>
+      <li>Er worden <b>geen cookies</b> gebruikt en je hebt geen account nodig. Namen van profielen blijven ook op het apparaat.</li>
+      <li><b>Geen tracking</b>: geen analytics, geen advertenties en geen verbindingen met andere websites. Ook de lettertypes komen van deze site zelf.</li>
+      <li>Wis je de websitegegevens van je browser, of gebruik je een ander apparaat of een andere browser, dan begin je opnieuw.</li>
+    </ul>
+  </section>
 </main>
 
 <footer>Gemaakt met ❤️ voor school</footer>

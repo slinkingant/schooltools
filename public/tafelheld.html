@@ -16,9 +16,15 @@
 </head>
 <body>
 <title>Tafelheld</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Lexend:wght@400;500;600&display=swap">
+<link rel="preload" href="/fonts/baloo-2-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:"Baloo 2";font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/baloo-2-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Baloo 2";font-style:normal;font-weight:700;font-display:swap;src:url(/fonts/baloo-2-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Baloo 2";font-style:normal;font-weight:800;font-display:swap;src:url(/fonts/baloo-2-latin-800-normal.woff2) format("woff2")}
+@font-face{font-family:"Lexend";font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/lexend-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Lexend";font-style:normal;font-weight:500;font-display:swap;src:url(/fonts/lexend-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Lexend";font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/lexend-latin-600-normal.woff2) format("woff2")}
+</style>
 <style>
 /* Layout: lucht met stippen, snoepkleurige knoppen met dikke onderrand, mascotte "Ster" die meeleeft */
 :root{
