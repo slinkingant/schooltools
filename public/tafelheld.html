@@ -768,8 +768,9 @@ function startSession(c){
 function countdown(done){const el=$('#countdown'),num=$('#cdNum');el.hidden=false;$('#qText').textContent='';$('#ansBox').textContent='';$('#pInfo').textContent='';let n=3;const cols=['var(--berry)','var(--tang)','var(--sky)'];
   const step=()=>{if(!G||G.over){el.hidden=true;return}if(n===0){num.textContent='Start!';num.style.color='var(--mint)';restart(num,'zoom');tone([1047],'triangle',0,.2);setTimeout(()=>{el.hidden=true;if(!G.over)done()},550);return}
     num.textContent=n;num.style.color=cols[n-1];restart(num,'zoom');tone([523],'sine',0,.12);n--;setTimeout(step,800)};step()}
-function tick(){if(!G||G.over)return;const left=G.end-performance.now();$('#progBar').style.width=Math.max(0,left/6e4*100)+'%';$('#prog').classList.toggle('late',left<1e4);if(left<=0){finish();return}G.raf=requestAnimationFrame(tick)}
+function tick(){if(!G||G.over)return;if(G.pausedAt){G.raf=requestAnimationFrame(tick);return}const left=G.end-performance.now();$('#progBar').style.width=Math.max(0,left/6e4*100)+'%';$('#prog').classList.toggle('late',left<1e4);if(left<=0){finish();return}G.raf=requestAnimationFrame(tick)}
 function next(adv){
+  if(G.pausedAt){G.end+=performance.now()-G.pausedAt;G.pausedAt=0}
   if(adv)G.idx++;const p=prof();
   if(G.pending.length){const end=G.len&&G.idx>=G.queue.length;const i=G.pending.findIndex(x=>x.due<=G.idx||end);if(i>=0){const[it]=G.pending.splice(i,1);G.queue.splice(G.idx,0,it.q)}}
   if(G.idx>=G.queue.length&&G.pool&&!G.len){const last=G.queue[G.idx-1];G.queue.push(pick(p,G.pool,last&&last.key))}
@@ -807,7 +808,9 @@ function check(){if(G.busy||!G.input)return;const q=G.queue[G.idx];const dt=perf
     else if(firstOk)quickReward('Eerste goed!');
     const st=$('#streak');if(G.streak>=2){st.hidden=false;st.textContent=G.streak+' op rij';restart(st,'pop')}
     if(G.mode==='quiz'||!G.len){$('#pInfo').textContent='✓ '+G.good;restart($('#pInfo'),'pop')}
-    setTimeout(()=>{if(!G.over){G.busy=false;next(true)}},G.mode==='quiz'?320:600)}
+    /* quiz: klok staat stil zolang de confetti (en bij een mijlpaal de banner) in beeld is */
+    const hold=G.mode==='quiz'?(RM||!cx?320:ms?1700:750):600;if(G.mode==='quiz')G.pausedAt=performance.now();
+    setTimeout(()=>{if(!G.over){G.busy=false;next(true)}},hold)}
   else{G.bad++;G.streak=0;G.prevWrong=true;$('#streak').hidden=true;G.wrong.push(q.id);beep(false);
     if((G.mode==='shuffle'||G.mode==='review')&&!G.retried.has(q.key)){G.retried.add(q.key);G.pending.push({q,due:G.idx+4})}
     $('#qPanel').className='qpanel no';fb.className='bubble no';fb.textContent=rnd(OOPS)+' '+q.full;$('#ansBox').textContent=q.ans;mascot(pm,'oops');
