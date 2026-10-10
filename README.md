@@ -32,4 +32,15 @@ Eigen PWA-bestanden: `public/sommenheld.webmanifest`, `public/sommenheld-sw.js` 
 | 5 | Tot 100, twee grote getallen · Welk getal mist er? · Tot 1000, ronde getallen |
 | 6 | Tot 1000, met overstap |
 
+Bedenktijd per som (bepaalt de beoordeling voor herhalen, de tempo-sterren en de limieten van de meestertoets):
+
+| Som | Bedenktijd |
+|---|---|
+| tot 10 | 2,5 s |
+| tot 20 | 3,5 s, over de 10 +1 s |
+| tot 100 | 5 s, over het tiental +2 s, twee getallen boven de 10 +1,5 s |
+| boven 100 | 8 s, over het tiental +3 s, over het honderdtal +3 s, twee getallen van drie cijfers +2 s |
+| ronde getallen (30 + 40, 560 + 30) | 60% van de tijd, minstens 3 s |
+| ontbrekend getal (? + 26 = 73) | +2 s |
+
 Elk niveau heeft 3 stappen: Oefenen (met hulpknop), Zonder hulp en Op tempo. De hulp toont kralen in rijen van 10 (tot 20) of de tussenstappen ("eerst de grote stukken"). Hulp gebruiken telt als "Moeilijk" voor de planning.

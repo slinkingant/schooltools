@@ -541,7 +541,7 @@ function mk(a,op,b,blank='c',lv=0){
   return{a,b,c,op,blank,ans:vals[blank],parts,lv,key,id:`${a}${op}${b}|${blank}|${lv}`,full:`${a} ${sym} ${b} = ${c}`,text:parts.map(x=>x===null?'?':x).join(' ')}}
 function fromId(id){const m=/^(\d+)([+-])(\d+)\|([abc])\|(\d+)$/.exec(id);return m?mk(+m[1],m[2],+m[3],m[4],+m[5]):null}
 
-/* niveaus, oplopend in moeilijkheid; g = groep waarin dit meestal geoefend wordt; speed = vlot antwoord in ms */
+/* niveaus, oplopend in moeilijkheid; g = groep waarin dit meestal geoefend wordt; speed = gemiddelde tijd voor de voorbeeldgegevens (de bedenktijd per som staat in thinkTime) */
 const LV=[
  {id:1,g:3,name:'Plus tot 10',ex:'3 + 4',speed:2500,gen(){const a=ri(1,9);return mk(a,'+',ri(1,10-a))}},
  {id:2,g:3,name:'Min tot 10',ex:'8 − 3',speed:2800,gen(){const c=ri(2,10);return mk(c,'-',ri(1,c-1))}},
@@ -582,7 +582,24 @@ const DECAY=-0.5,FACTOR=19/81,DAY=864e5,HOUR=36e5;
 const clampD=d=>Math.min(10,Math.max(1,d));
 const fsrsR=(t,s)=>Math.pow(1+FACTOR*t/s,DECAY);
 const initD=g=>clampD(FW[4]-Math.exp(FW[5]*(g-1))+1);
-function rating(ok,dt,lv,hinted){if(!ok)return 1;if(hinted)return 2;const sp=LVM[lv].speed;return dt<sp?4:dt<sp*2.4?3:2}
+/* bedenktijd per som, in stapjes: hoe groter de getallen en hoe meer overstappen, hoe meer tijd.
+   tot 10: 2,5 s · tot 20: 3,5 s (+1 s over de 10) · tot 100: 5 s (+2 s over het tiental, +1,5 s bij twee getallen boven de 10)
+   boven 100: 8 s (+3 s over het tiental, +3 s over het honderdtal, +2 s bij twee getallen van drie cijfers)
+   ronde getallen (30 + 40, 560 + 30): 60% van de tijd, minstens 3 s · ontbrekend getal (? + 26 = 73): +2 s */
+function thinkTime(q){
+  const big=Math.max(q.a,q.b,q.c),plus=q.op==='+';
+  const crossU=plus?(q.a%10+q.b%10>=10):(q.a%10<q.b%10);
+  const crossT=plus?(q.a%100+q.b%100>=100):(q.a%100<q.b%100);
+  let t;
+  if(big<=10)t=2500;
+  else if(big<=20)t=3500+(crossU?1000:0);
+  else if(big<=100)t=5000+(crossU?2000:0)+(Math.min(q.a,q.b)>10?1500:0);
+  else t=8000+(crossU?3000:0)+(crossT?3000:0)+(Math.min(q.a,q.b)>=100?2000:0);
+  if(big>20&&q.a%10===0&&q.b%10===0)t=Math.max(3000,Math.round(t*.6));
+  if(q.blank!=='c')t+=2000;
+  return t}
+/* 4 Makkelijk: binnen de bedenktijd · 3 Goed: tot 2,4× · 2 Moeilijk: langer, of met hulp · 1 Opnieuw: fout */
+function rating(ok,dt,q,hinted){if(!ok)return 1;if(hinted)return 2;const T=thinkTime(q);return dt<T?4:dt<T*2.4?3:2}
 const newT=()=>({state:0,step:0,S:0,D:0,reps:0,lapses:0,due:0,lr:0,elapsed:0,sched:0,stars:0,passed:false,cool:0,best:0});
 const ivlDays=t=>Math.max(1,Math.round(t.S));
 function summaryRating(rs){
@@ -821,7 +838,7 @@ function startSession(c){
   const take=(lv,n)=>{for(let i=0;i<n;i++)G.queue.push(genQ(lv,G.used))};
   if(c.mode==='level'){take(c.lv,STEPS[c.step-1].len);G.len=G.queue.length}
   else if(c.mode==='review'){c.lvs.forEach(l=>take(l,8));G.queue=shuffle(G.queue);G.len=G.queue.length}
-  else if(c.mode==='mastery'){take(c.lv,MT_N);G.len=G.queue.length;const sp=LVM[c.lv].speed;G.perQ=Math.max(15000,sp*5);G.total=MT_N*Math.max(9000,sp*3)}
+  else if(c.mode==='mastery'){take(c.lv,MT_N);G.len=G.queue.length;G.total=G.queue.reduce((s,q)=>s+Math.max(9000,thinkTime(q)*3),0)}
   else if(c.custom){G.queue=shuffle(c.custom.map(fromId).filter(Boolean));G.len=G.queue.length}
   else if(c.mode==='shuffle'&&c.len){for(let i=0;i<c.len;i++)G.queue.push(genQ(pickLv(p,c.lvs),G.used));G.len=G.queue.length}
   G.hintOk=(c.mode==='level'&&c.step===1)||c.mode==='shuffle';
@@ -861,22 +878,22 @@ function record(q,ok,dt){const p=prof();const ls=p.lvs[q.lv]||(p.lvs[q.lv]={g:0,
   if(!ok)p.recent=[q.id,...p.recent.filter(x=>x!==q.id)].slice(0,30);
   save()}
 function check(){if(G.busy||!G.input)return;const q=G.queue[G.idx];const dt=performance.now()-G.qs;const ok=+G.input===q.ans;G.busy=true;record(q,ok,dt);
-  const r=rating(ok,dt,q.lv,G.hinted);
-  if(!q.retry){(G.rate[q.lv]||(G.rate[q.lv]=[])).push(r);const tt=G.ltime[q.lv]||(G.ltime[q.lv]={sum:0,n:0,wrong:false,hint:false});if(ok){tt.sum+=dt;tt.n++}else tt.wrong=true;if(G.hinted)tt.hint=true}
+  const T=thinkTime(q),r=rating(ok,dt,q,G.hinted);
+  if(!q.retry){(G.rate[q.lv]||(G.rate[q.lv]=[])).push(r);const tt=G.ltime[q.lv]||(G.ltime[q.lv]={sum:0,n:0,wrong:false,hint:false});if(ok){tt.sum+=dt/T;tt.n++}else tt.wrong=true;if(G.hinted)tt.hint=true}
   $('#hintBtn').hidden=true;
   const fb=$('#fb'),pm=$('#playMascot');
   if(isMT()){
     G.mrates.push(r);G.think+=dt;
     if(ok){G.good++;beep(true);$('#qPanel').className='qpanel ok';fb.className='bubble ok';fb.textContent=rnd(PRAISE);mascot(pm,'happy');
-      const late=dt>G.perQ||G.think>G.total;
+      const late=dt>Math.max(15000,T*5)||G.think>G.total;
       setTimeout(()=>{if(G.over)return;G.busy=false;if(late)finishMastery('timeout');else next(true)},450)}
     else{G.bad++;G.wrong.push(q.id);beep(false);$('#qPanel').className='qpanel no';fb.className='bubble no';fb.textContent=rnd(OOPS)+' '+q.full;$('#ansBox').textContent=q.ans;mascot(pm,'oops');
       setTimeout(()=>{if(!G.over)finishMastery('again',q)},1700)}
     return}
-  if(ok){const firstOk=G.good===0,back=G.prevWrong;G.good++;G.streak++;G.prevWrong=false;G.best=Math.max(G.best,G.streak);G.times.push(dt);beep(true);
+  if(ok){const firstOk=G.good===0,back=G.prevWrong;G.good++;G.streak++;G.prevWrong=false;G.best=Math.max(G.best,G.streak);G.times.push(dt/T);beep(true);
     $('#qPanel').className='qpanel ok';fb.className='bubble ok';
     const ms=[3,5,10,15,20,25,30,40,50].includes(G.streak);
-    fb.textContent=ms?`${G.streak} op rij!`:back?'Weer op koers!':dt<LVM[q.lv].speed*.8&&G.mode!=='level'?'Bliksemsnel!':rnd(PRAISE);
+    fb.textContent=ms?`${G.streak} op rij!`:back?'Weer op koers!':dt<T*.8&&G.mode!=='level'?'Bliksemsnel!':rnd(PRAISE);
     mascot(pm,'happy');const[x,y]=centerOf($('#ansBox'));burst(x,y,ms?50:22,ms?1.4:1);floater('+1',$('#ansBox'));
     if(ms){quickReward(G.streak>=10?`${G.streak} op rij! Kampioen!`:`${G.streak} op rij!`);fanfare();rain(G.streak>=10?120:60)}
     else if(back)quickReward('Weer op koers!');
@@ -898,7 +915,10 @@ $('#stopBtn').onclick=()=>{
 function relWake(){try{wl&&wl.release()}catch(e){}wl=null}
 
 /* sterren voor een stap: fouten tellen in de eerste ronde (herhaalde sommen niet); bij "Op tempo" ook de snelheid */
-function calcStars(){const sp=LVM[G.lv].speed,e=G.bad;let s=e===0?3:e<=2?2:e<=4?1:0;if(G.step===3&&G.times.length){const a=G.times.reduce((x,y)=>x+y,0)/G.times.length;if(a>sp*2)s=Math.min(s,1);else if(a>sp*1.4)s=Math.min(s,2)}return s}
+/* G.times: per goede som de gebruikte tijd gedeeld door de bedenktijd van die som (1 = precies op tijd) */
+const tempo=()=>G.times.length?G.times.reduce((x,y)=>x+y,0)/G.times.length:0;
+function calcStars(){const e=G.bad;let s=e===0?3:e<=2?2:e<=4?1:0;if(G.step===3&&G.times.length){const a=tempo();if(a>2)s=Math.min(s,1);else if(a>1.4)s=Math.min(s,2)}return s}
+const tempoText=a=>a<=1?'binnen de bedenktijd':a<=1.4?'net iets langer dan de bedenktijd':'ruim langer dan de bedenktijd';
 function countUp(el,to){if(RM||to<2){el.textContent=to;return}let t0=null;const d=Math.min(1200,300+to*40);const f=t=>{if(t0===null)t0=t;const k=Math.min(1,Math.max(0,(t-t0)/d));el.textContent=Math.round(to*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
 function lvStarsBlock(changes){if(!changes.length)return'';
   return `<div class="panel tsum">${changes.map(c=>`<div class="tsrow ${lc(c.lv)}"><span class="tname">${lvName(c.lv)}</span><span class="tstars">${starRow(c.after,c.before,.4)}</span><span class="muted">${c.after>c.before?(c.after-c.before===1?'Nieuwe ster!':'Nieuwe sterren!'):'Herhalen: '+dueText(c.due)}</span></div>`).join('')}</div>`}
@@ -915,7 +935,7 @@ function finish(){
   const changes=[];
   Object.keys(G.rate).forEach(k=>{const id=+k,vals=G.rate[id];if(!LVM[id]||vals.length<5)return;
     const t=getL(p,id),before=t.stars;lvReview(t,summaryRating(vals),now);const c={lv:id,before,after:t.stars,due:t.due,best:false};
-    const tm=G.ltime[id];if(tm&&!tm.wrong&&!tm.hint&&tm.n>=8){const a=tm.sum/tm.n;if(t.best&&a<t.best)c.best=true;if(!t.best||a<t.best)t.best=a}
+    const tm=G.ltime[id];if(tm&&!tm.wrong&&!tm.hint&&tm.n>=8){const a=tm.sum/tm.n;if(t.bestR&&a<t.bestR)c.best=true;if(!t.bestR||a<t.bestR)t.bestR=a}
     changes.push(c)});
   changes.sort((a,b)=>a.lv-b.lv);
   if(total>0){p.sessions.unshift(sess);p.sessions=p.sessions.slice(0,60)}save();
@@ -930,9 +950,9 @@ function finish(){
   let h=`<svg class="mascot big" id="resMascot" data-mascot viewBox="0 0 100 100"></svg><h1>${title}</h1>`;
   if(G.mode==='quiz'){h+=`<div class="bignum" id="resNum">0</div><div class="muted" style="font-size:1.2rem">sommen goed in 1 minuut${G.bad?` · ${G.bad} fout`:''}</div>`;h+=isRec?`<div class="record">Nieuw record!${prev?` (was ${prev})`:''}</div>`:prev?`<div class="muted">Je record is ${prev}</div>`:''}
   else{h+=`<div class="bignum"><span id="resNum">0</span><span style="font-size:.45em;color:var(--muted);text-shadow:none"> / ${total}</span></div>`;
-    if(G.mode==='level'){const sp=LVM[G.lv].speed;h+=`<div class="muted" style="font-size:1.2rem">${lvName(G.lv)} · stap ${G.step}: ${STEPS[G.step-1].n}${G.step===3&&G.times.length?` · gemiddeld ${secs(G.times.reduce((a,b)=>a+b,0)/G.times.length)}`:''}</div>`;
+    if(G.mode==='level'){h+=`<div class="muted" style="font-size:1.2rem">${lvName(G.lv)} · stap ${G.step}: ${STEPS[G.step-1].n}${G.step===3&&G.times.length?` · gemiddeld ${tempoText(tempo())}`:''}</div>`;
       if(st<2&&G.step<3)h+=`<div class="muted">Hoogstens 2 fouten, dan gaat de volgende stap open.</div>`;
-      if(st<2&&G.step===3)h+=`<div class="muted">Hoogstens 2 fouten en gemiddeld binnen ${secs(sp*1.4)}, dan heb je deze stap gehaald.</div>`}
+      if(st<2&&G.step===3)h+=`<div class="muted">Hoogstens 2 fouten en niet veel langer dan de bedenktijd, dan heb je deze stap gehaald.</div>`}
     else h+=`<div class="muted" style="font-size:1.2rem">sommen goed</div>`}
   h+=lvStarsBlock(changes);
   if(G.best>=3)h+=`<div class="muted">Langste reeks: <b>${G.best} op rij</b></div>`;
