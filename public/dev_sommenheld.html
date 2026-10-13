@@ -820,7 +820,7 @@ const dots=n=>`<span class="dots">${[0,1,2].map(i=>`<i class="dot${i<n?' on':''}
 const chipQ=q=>`<span class="chip">${esc(q.parts.map(x=>x===null?`<b>${q.ans}</b>`:x).join(' ')).replace(/&lt;b&gt;/g,'<b>').replace(/&lt;\/b&gt;/g,'</b>')}</span>`;
 
 /* ---------- schermen ---------- */
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id);$('#installNote').hidden=!(installable&&(id==='s-profiles'||id==='s-menu'));window.scrollTo(0,0)}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id);$('#installNote').hidden=!(installable&&id==='s-profiles');window.scrollTo(0,0)}
 document.addEventListener('click',e=>{if(e.target.closest('[data-back]')){renderMenu();show('s-menu')}});
 
 /* ---------- installeren als app ---------- */
@@ -1133,13 +1133,15 @@ let gate=null;
 function newGate(){let a,b;do{a=13+Math.floor(Math.random()*27)}while(a%10===0);do{b=12+Math.floor(Math.random()*8)}while(b===15);gate={a,b,ans:a*b};$('#gateSum').textContent=`${a} × ${b} =`;$('#gateIn').value=''}
 function openGate(act,text){confirmAct=act;$('#confirmText').textContent=text;$('#gateMsg').textContent='';newGate();$('#confirmBox').hidden=false;$('#gateIn').focus()}
 $('#resetBtn').onclick=()=>{const p=S.profiles.find(x=>x.id===stProf);openGate('reset',`Alle statistieken, sterren en records van ${p.name} wissen?`)};
-$('#delBtn').onclick=()=>{const p=S.profiles.find(x=>x.id===stProf);openGate('del',`Profiel ${p.name} helemaal verwijderen?`)};
+/* het voorbeeldprofiel mag zonder rekensom weg; het komt daarna ook niet terug als er geen kinderen zijn */
+function delProfile(p){S.profiles=S.profiles.filter(x=>x.id!==p.id);if(p.demo)S.noDemo=true;if(S.current===p.id)S.current=null;save();stProf=null;$('#confirmBox').hidden=true;if(!prof()){renderProfiles();show('s-profiles')}else renderStats()}
+$('#delBtn').onclick=()=>{const p=S.profiles.find(x=>x.id===stProf);if(!p)return;if(p.demo){delProfile(p);return}openGate('del',`Profiel ${p.name} helemaal verwijderen?`)};
 $('#confirmNo').onclick=()=>{$('#confirmBox').hidden=true};
 $('#gateIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('#confirmYes').click()});
 $('#confirmYes').onclick=()=>{const p=S.profiles.find(x=>x.id===stProf);if(!p)return;
   if(+$('#gateIn').value.trim()!==gate.ans){newGate();$('#gateMsg').textContent='Dat klopt niet. Probeer deze som.';$('#gateIn').focus();return}
   if(confirmAct==='reset'){Object.assign(p,{facts:{},lv:{},lvs:{},steps:{},records:{},sessions:[],recent:[],ms:0});save();renderStats()}
-  else{S.profiles=S.profiles.filter(x=>x.id!==p.id);if(S.current===p.id)S.current=null;save();stProf=null;if(!prof()){renderProfiles();show('s-profiles')}else renderStats()}};
+  else delProfile(p)};
 
 /* ---------- voortgang overzetten (QR-code, zonder internet) ----------
    Versturen: de gekozen profielen gaan in een compact formaat (kolommen, ingekorte somnamen, tijden in minuten)
@@ -1364,7 +1366,7 @@ setInterval(()=>{if(document.visibilityState==='visible')updCheck()},30*6e4);
 updInfo();setTimeout(updCheck,3000);
 
 /* ---------- start ---------- */
-if(!S.profiles.length)S.profiles.push(makeDemo());
+if(!S.profiles.length&&!S.noDemo)S.profiles.push(makeDemo());
 S.profiles.forEach(fixProfile);save();
 renderProfiles();
 if(prof()){renderMenu();show('s-menu')}else show('s-profiles');
