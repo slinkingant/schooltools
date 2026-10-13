@@ -1035,11 +1035,15 @@ $('#confirmYes').onclick=()=>{const p=S.profiles.find(x=>x.id===stProf);if(!p)re
   else{S.profiles=S.profiles.filter(x=>x.id!==p.id);if(S.current===p.id)S.current=null;save();stProf=null;if(!prof()){renderProfiles();show('s-profiles')}else renderStats()}};
 
 /* ---------- voortgang overzetten (QR-code, zonder internet) ----------
-   Versturen: de gekozen profielen gaan als JSON → deflate → base64url in één of meer QR-codes.
-   Elke code is een link <deze pagina>#ov=<id>.<deel>.<aantal>.<data>; meerdere delen wisselen elkaar af.
-   Ontvangen: camera (BarcodeDetector als die er is, anders jsQR) of geplakte tekst.
+   Versturen: de gekozen profielen gaan in een compact formaat (kolommen, ingekorte somnamen, tijden in minuten)
+   → deflate → base45 in één of meer QR-codes (alfanumerieke modus, bijna net zo zuinig als ruwe bytes).
+   QR-tekst: OV2<app><Z|J>:<id>:<deel>:<aantal>:<base45>; meerdere delen wisselen elkaar af.
+   "Kopieer als tekst" maakt een link <deze pagina>#ov=<id>.1.1.<y|w><base64url> met dezelfde bytes.
+   Ontvangen: camera (BarcodeDetector als die er is, anders jsQR) of geplakte tekst. Oude codes (#ov=…z/j) werken nog.
    Samenvoegen gaat per som/niveau: er gaat nooit voortgang verloren en niets wordt dubbel geteld. */
-const OV_APP='tafelheld',OV_NAME='Tafelheld',OV_CHUNK=480,OV_MS=500;
+const OV_APP='tafelheld',OV_NAME='Tafelheld',OV_L=OV_APP[0].toUpperCase(),OV_CHUNK=470,OV_MS=500;
+const OV_TS=new Set(['d','due','lr','cool']),OV_TBL=['facts','lvs','tables','lv'],OV_DROP=new Set(['sched','elapsed']);
+const OV_B45='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
 const OV_LIB={qr:'/vendor/qrcode-generator-1.4.4.min.js',scan:'/vendor/jsqr-1.4.0.min.js'};
 const OV_RULES={facts:'cnt',lvs:'cnt',tables:'fsrs',lv:'fsrs',levels:'max',steps:'max',records:'max',sessions:'sess',ms:'max',recent:'list'};
 const ov={tok:0,sel:null,frames:[],fi:0,timer:0,stream:null,raf:0,parts:null,pid:null,pn:0,data:null,det:null};
@@ -1047,15 +1051,40 @@ const ov={tok:0,sel:null,frames:[],fi:0,timer:0,stream:null,raf:0,parts:null,pid
 function ovLoad(src){return new Promise((ok,fail)=>{if(document.querySelector(`script[src="${src}"]`)&&(src===OV_LIB.qr?window.qrcode:window.jsQR))return ok();const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>fail(new Error('laden mislukt'));document.head.appendChild(s)})}
 const ovB64=u8=>{let s='';for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 const ovUnB64=s=>{const b=atob(s.replace(/-/g,'+').replace(/_/g,'/'));const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
-async function ovPack(obj){
-  const bytes=new TextEncoder().encode(JSON.stringify(obj,(k,v)=>typeof v==='number'&&!Number.isInteger(v)?Math.round(v*1e4)/1e4:v));
-  try{if(window.CompressionStream){const st=new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));return 'z'+ovB64(new Uint8Array(await new Response(st).arrayBuffer()))}}catch(e){}
-  return 'j'+ovB64(bytes)}
-async function ovUnpack(s){
-  let bytes=ovUnB64(s.slice(1));
-  if(s[0]==='z'){if(!window.DecompressionStream)throw new Error('Deze browser is te oud om de code te lezen.');const st=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));bytes=new Uint8Array(await new Response(st).arrayBuffer())}
-  else if(s[0]!=='j')throw new Error('Onbekende code.');
-  return JSON.parse(new TextDecoder().decode(bytes))}
+function ovB45(u8){let s='';for(let i=0;i<u8.length;i+=2){if(i+1<u8.length){const n=u8[i]*256+u8[i+1];s+=OV_B45[n%45]+OV_B45[(n/45|0)%45]+OV_B45[n/2025|0]}else{const n=u8[i];s+=OV_B45[n%45]+OV_B45[n/45|0]}}return s}
+function ovUnB45(s){const o=[],v=c=>{const i=OV_B45.indexOf(c);if(i<0)throw new Error('Onbekende code.');return i};
+  for(let i=0;i<s.length;i+=3){if(i+2<s.length){const n=v(s[i])+v(s[i+1])*45+v(s[i+2])*2025;if(n>65535)throw new Error('Onbekende code.');o.push(n>>8,n&255)}else{const n=v(s[i])+v(s[i+1])*45;if(n>255)throw new Error('Onbekende code.');o.push(n)}}
+  return new Uint8Array(o)}
+/* compact formaat: tijdstippen in minuten, bedenktijd (t) in tienden van seconden, kommagetallen op 2 decimalen,
+   lijsten van gelijke objecten als kolommen, sleutels gesorteerd en "front-coded" (gedeeld begin met de vorige sleutel weggelaten) */
+function ovWalk(x,k,f){if(Array.isArray(x))return x.map(v=>ovWalk(v,k,f));if(x&&typeof x==='object'){const o={};for(const kk in x)o[kk]=ovWalk(x[kk],kk,f);return o}return f(k,x)}
+const ovNum=(k,v)=>typeof v!=='number'?v:OV_TS.has(k)?(v?Math.round(v/6e4):0):k==='t'?Math.round(v/100):Number.isInteger(v)?v:Math.round(v*100)/100;
+const ovUnNum=(k,v)=>typeof v!=='number'?v:OV_TS.has(k)?v*6e4:k==='t'?v*100:v;
+function ovFront(keys){let prev='';return keys.map(k=>{let i=0;while(i<prev.length&&i<k.length&&i<60&&prev[i]===k[i])i++;prev=k;return String.fromCharCode(64+i)+k.slice(i)}).join(',')}
+function ovUnfront(s){let prev='';return s?s.split(',').map(e=>prev=prev.slice(0,e.charCodeAt(0)-64)+e.slice(1)):[]}
+function ovToCols(o){const keys=Object.keys(o).sort();if(keys.some(k=>k.includes(','))||keys.some(k=>!o[k]||typeof o[k]!=='object'))return o;
+  const f=[...new Set(keys.flatMap(k=>Object.keys(o[k])))].filter(n=>!OV_DROP.has(n));return{'#':f,k:ovFront(keys),c:f.map(n=>keys.map(k=>o[k][n]))}}
+function ovFromCols(t,keys){return keys.map((_,i)=>{const e={};t['#'].forEach((n,j)=>{const v=t.c[j][i];if(v!=null)e[n]=v});return e})}
+function ovCompact(p){const q=ovWalk(p,'',ovNum);delete q.demo;
+  OV_TBL.forEach(k=>{if(q[k]&&typeof q[k]==='object'&&!Array.isArray(q[k]))q[k]=ovToCols(q[k])});
+  if(Array.isArray(q.sessions)&&q.sessions.length){const s=q.sessions,f=[...new Set(s.flatMap(x=>Object.keys(x)))];q.sessions={'#':f,c:f.map(n=>s.map(x=>x[n]))}}
+  return q}
+function ovExpand(q){if(!q||typeof q!=='object')return q;
+  OV_TBL.forEach(k=>{const t=q[k];if(t&&Array.isArray(t['#'])){const keys=ovUnfront(t.k),o={};ovFromCols(t,keys).forEach((e,i)=>{if(k==='tables'||k==='lv'){e.sched=e.sched||0;e.elapsed=e.elapsed||0}o[keys[i]]=e});q[k]=o}});
+  if(q.sessions&&Array.isArray(q.sessions['#']))q.sessions=ovFromCols(q.sessions,[...Array((q.sessions.c[0]||[]).length)]);
+  return ovWalk(q,'',ovUnNum)}
+async function ovDeflate(u8){try{if(window.CompressionStream){const st=new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate-raw'));return{z:true,bytes:new Uint8Array(await new Response(st).arrayBuffer())}}}catch(e){}return{z:false,bytes:u8}}
+async function ovInflate(u8,z){if(!z)return u8;if(!window.DecompressionStream)throw new Error('Deze browser is te oud om de code te lezen.');const st=new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw'));return new Uint8Array(await new Response(st).arrayBuffer())}
+async function ovPack(profiles){return ovDeflate(new TextEncoder().encode(JSON.stringify({v:2,app:OV_APP,at:Math.round(Date.now()/6e4),p:profiles.map(ovCompact)})))}
+/* parts: de verzamelde stukken in volgorde; kind 'q' = QR (base45), 'l' = link/tekst (base64url met voorletter) */
+async function ovUnpack(kind,flag,parts){
+  let bytes,z,v2=true;
+  if(kind==='q'){const u=parts.map(ovUnB45),n=u.reduce((s,x)=>s+x.length,0);bytes=new Uint8Array(n);let o=0;u.forEach(x=>{bytes.set(x,o);o+=x.length});z=flag==='Z'}
+  else{const s=parts.join(''),m=s[0];bytes=ovUnB64(s.slice(1));if(m==='y'||m==='w')z=m==='y';else if(m==='z'||m==='j'){z=m==='z';v2=false}else throw new Error('Onbekende code.')}
+  const o=JSON.parse(new TextDecoder().decode(await ovInflate(bytes,z)));
+  if(!v2)return o;
+  if(!o||o.v!==2||!Array.isArray(o.p))return null;
+  return{v:1,app:o.app,at:(o.at||0)*6e4,profiles:o.p.map(ovExpand)}}
 
 /* ----- samenvoegen ----- */
 function ovMax(x,y){
@@ -1063,17 +1092,17 @@ function ovMax(x,y){
   if(typeof x==='number'||typeof y==='number')return Math.max(+x||0,+y||0);
   if(x&&y&&typeof x==='object'){const o={...x};for(const k in y)o[k]=k in x?ovMax(x[k],y[k]):y[k];return o}
   return x??y}
-const ovTries=f=>(f&&(f.g||0)+(f.f||0))||0;
+const ovTries=f=>(f&&(f.g||0)+(f.f||0))||0,ovMin=t=>Math.round((t||0)/6e4);
 function ovMerge(a,b){
   for(const k of Object.keys(b)){
     const x=a[k],y=b[k];if(y==null||k==='id'||k==='demo')continue;if(x==null){a[k]=y;continue}
     switch(OV_RULES[k]){
       case 'cnt':for(const id in y)if(ovTries(y[id])>ovTries(x[id]))x[id]=y[id];break;            /* meeste pogingen = nieuwste stand */
       case 'fsrs':for(const id in y){const p=x[id],q=y[id];if(!p){x[id]=q;continue}               /* laatst herhaald telt, sterren gaan nooit omlaag */
-        const n=((q.lr||0)>(p.lr||0)||((q.lr||0)===(p.lr||0)&&(q.reps||0)>(p.reps||0)))?{...q}:{...p};
+        const n=(ovMin(q.lr)>ovMin(p.lr)||(ovMin(q.lr)===ovMin(p.lr)&&(q.reps||0)>(p.reps||0)))?{...q}:{...p};
         n.stars=Math.max(p.stars||0,q.stars||0);n.passed=!!(p.passed||q.passed);n.best=Math.max(p.best||0,q.best||0);x[id]=n}break;
       case 'max':a[k]=ovMax(x,y);break;
-      case 'sess':{const key=s=>s.d+'|'+s.mode,seen=new Set(x.map(key));a[k]=[...x,...y.filter(s=>!seen.has(key(s)))].sort((p,q)=>q.d-p.d).slice(0,60);break}
+      case 'sess':{const key=s=>ovMin(s.d)+'|'+s.mode,seen=new Set(x.map(key));a[k]=[...x,...y.filter(s=>!seen.has(key(s)))].sort((p,q)=>q.d-p.d).slice(0,60);break}
       case 'list':a[k]=[...x,...y.filter(v=>!x.includes(v))].slice(0,30);break;
       /* overige velden (naam, kleur, instellingen): die van dit apparaat blijven staan */
     }}
@@ -1108,11 +1137,10 @@ async function ovRenderSend(){
   ovStopFrames();if(!chosen.length)return;
   $('#ovPart').textContent='Code maken…';
   try{await ovLoad(OV_LIB.qr)}catch(e){$('#ovPart').textContent='De QR-code kon niet geladen worden. Gebruik "Kopieer als tekst".'}
-  const data=await ovPack({v:1,app:OV_APP,at:Date.now(),profiles:chosen.map(p=>{const c=JSON.parse(JSON.stringify(p));delete c.demo;return c})});
-  const id=Math.random().toString(36).slice(2,6),base=location.origin+location.pathname+'#ov=',n=Math.max(1,Math.ceil(data.length/OV_CHUNK));
-  ov.copy=`${base}${id}.1.1.${data}`;
+  const {z,bytes}=await ovPack(chosen),id=Math.random().toString(36).slice(2,6).toUpperCase().padEnd(4,'0'),n=Math.max(1,Math.ceil(bytes.length/OV_CHUNK));
+  ov.copy=`${location.origin}${location.pathname}#ov=${id.toLowerCase()}.1.1.${z?'y':'w'}${ovB64(bytes)}`;
   ov.frames=[];
-  if(window.qrcode)for(let i=0;i<n;i++){const q=qrcode(0,'M');q.addData(`${base}${id}.${i+1}.${n}.${data.slice(i*OV_CHUNK,(i+1)*OV_CHUNK)}`,'Byte');q.make();ov.frames.push(q)}
+  if(window.qrcode)for(let i=0;i<n;i++){const q=qrcode(0,'M');q.addData(`OV2${OV_L}${z?'Z':'J'}:${id}:${i+1}:${n}:${ovB45(bytes.subarray(i*OV_CHUNK,(i+1)*OV_CHUNK))}`,'Alphanumeric');q.make();ov.frames.push(q)}
   ov.fi=0;ovDrawFrame();if(ov.frames.length>1)ov.timer=setInterval(()=>{ov.fi=(ov.fi+1)%ov.frames.length;ovDrawFrame()},OV_MS)}
 function ovDrawFrame(){
   const q=ov.frames[ov.fi];if(!q)return;const cv=$('#ovQr canvas'),m=q.getModuleCount(),cell=Math.max(3,Math.floor(600/(m+8))),sz=(m+8)*cell,c=cv.getContext('2d');
@@ -1122,7 +1150,7 @@ function ovDrawFrame(){
 function ovStopFrames(){clearInterval(ov.timer);ov.timer=0}
 
 /* ----- ontvangen ----- */
-function ovResetParts(){ov.parts=null;ov.pid=null;ov.pn=0;$('#ovBar').style.width='0%'}
+function ovResetParts(){ov.parts=null;ov.pid=null;ov.pn=0;ov.pk=null;$('#ovBar').style.width='0%'}
 async function ovStartCam(){
   ovStopCam();ovResetParts();const st=$('#ovStatus'),tok=++ov.tok;
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){st.textContent='Op dit apparaat kan de camera hier niet gebruikt worden. Plak de code hieronder.';$('#ovCam').hidden=true;$('#ovPasteBox').open=true;return}
@@ -1146,17 +1174,22 @@ async function ovScanLoop(){
     else{const sc=Math.min(1,800/Math.max(v.videoWidth,v.videoHeight)),w=Math.round(v.videoWidth*sc),h=Math.round(v.videoHeight*sc);
       ovCv.width=w;ovCv.height=h;ovCx.drawImage(v,0,0,w,h);const r=jsQR(ovCx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:'dontInvert'});if(r&&r.data)ovIngest(r.data)}}}catch(e){}
   if(ov.stream)ov.raf=setTimeout(ovScanLoop,90)}
-function ovParse(t){const m=/#ov=([a-z0-9]{1,8})\.(\d{1,3})\.(\d{1,3})\.([A-Za-z0-9_-]+)/.exec(String(t||'').replace(/\s+/g,''));if(!m)return null;const i=+m[2],n=+m[3];if(!n||i<1||i>n)return null;return{id:m[1],i,n,d:m[4]}}
+function ovParse(t){
+  t=String(t||'');let m=/^OV2([A-Z])([ZJ]):([0-9A-Z]{1,8}):(\d{1,3}):(\d{1,3}):([0-9A-Z $%*+\-./:]*)$/.exec(t.trim()===t?t:t.replace(/^\s+|[\r\n]+$/g,''));
+  if(m){const i=+m[4],n=+m[5];if(!n||i<1||i>n)return null;return{kind:'q',app:m[1],flag:m[2],id:'q'+m[1]+m[2]+m[3],i,n,d:m[6]}}
+  m=/#ov=([a-z0-9]{1,8})\.(\d{1,3})\.(\d{1,3})\.([A-Za-z0-9_-]+)/.exec(t.replace(/\s+/g,''));if(!m)return null;
+  const i=+m[2],n=+m[3];if(!n||i<1||i>n)return null;return{kind:'l',id:'l'+m[1],i,n,d:m[4]}}
 function ovIngest(t){
   const p=ovParse(t);if(!p)return false;
-  if(ov.pid!==p.id){ov.pid=p.id;ov.pn=p.n;ov.parts=new Map()}
+  if(p.app&&p.app!==OV_L){$('#ovStatus').textContent=`Dit is een code van een andere app. Open die app om hem te ontvangen.`;return false}
+  if(ov.pid!==p.id){ov.pid=p.id;ov.pn=p.n;ov.pk=p;ov.parts=new Map()}
   if(!ov.parts.has(p.i)){ov.parts.set(p.i,p.d);try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
   const got=ov.parts.size;$('#ovBar').style.width=Math.round(got/ov.pn*100)+'%';
   $('#ovStatus').textContent=ov.pn>1?`${got} van ${ov.pn} delen binnen…`:'Code gevonden!';
-  if(got===ov.pn){const data=[...Array(ov.pn)].map((_,i)=>ov.parts.get(i+1)).join('');ovStopCam();ovResetParts();ovReceive(data)}
+  if(got===ov.pn){const parts=[...Array(ov.pn)].map((_,i)=>ov.parts.get(i+1)),k=ov.pk;ovStopCam();ovResetParts();ovReceive(k.kind,k.flag,parts)}
   return true}
-async function ovReceive(data){
-  let o;try{o=await ovUnpack(data)}catch(e){ovFail(e.message&&/oud|Onbekend/.test(e.message)?e.message:'De code kon niet gelezen worden. Probeer het opnieuw.');return}
+async function ovReceive(kind,flag,parts){
+  let o;try{o=await ovUnpack(kind,flag,parts)}catch(e){ovFail(e.message&&/oud|Onbekend/.test(e.message)?e.message:'De code kon niet gelezen worden. Probeer het opnieuw.');return}
   if(!o||o.v!==1||!Array.isArray(o.profiles)){ovFail('Dit is geen geldige code.');return}
   if(o.app!==OV_APP){ovFail(`Deze code is niet van ${OV_NAME}.`);return}
   const list=o.profiles.map(ovClean).filter(Boolean);if(!list.length){ovFail('Er staan geen kinderen in deze code.');return}
@@ -1188,7 +1221,8 @@ $('#ovCancel').onclick=()=>{ov.data=null;ovView('recv');$('#ovRetry').hidden=tru
 function ovFromHash(){
   const p=ovParse(location.hash);if(!p)return;try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
   $('#ovBox').hidden=false;document.body.style.overflow='hidden';ovView('recv');
-  if(p.n===1)ovIngest('#ov='+p.id+'.1.1.'+p.d);else ovStartCam()}
+  if(p.n===1)ovIngest(location.origin+'/#ov='+p.id.slice(1)+'.1.1.'+p.d);else ovStartCam()}
+addEventListener('hashchange',()=>{try{ovFromHash()}catch(e){}});
 
 /* ---------- start ---------- */
 if(!S.profiles.length)S.profiles.push(makeDemo());
