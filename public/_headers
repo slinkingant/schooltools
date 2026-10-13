@@ -13,3 +13,22 @@
 /sommenheld.webmanifest
   Content-Type: application/manifest+json
   Cache-Control: no-cache
+
+/dev_*
+  X-Robots-Tag: noindex, nofollow
+
+/dev_tafelheld-sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /
+
+/dev_tafelheld.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: no-cache
+
+/dev_sommenheld-sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /
+
+/dev_sommenheld.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: no-cache

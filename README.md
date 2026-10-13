@@ -7,6 +7,19 @@ Kleine oefentools voor school, gehost op https://school.1394.nl via Cloudflare W
 2. Voeg een regel toe aan de `TOOLS`-lijst onderaan `public/index.html`.
 3. Commit en push naar `main` — Cloudflare deployt automatisch.
 
+## Dev-versies (testen vóór livegang)
+- https://school.1394.nl/dev_tafelheld.html en https://school.1394.nl/dev_sommenheld.html
+- Niet gelinkt vanaf de startpagina, `noindex` voor zoekmachines, rood **DEV**-label rechtsboven.
+- Eigen opslag (`dev_tafelheld.v1`, `dev_sommenheld.v1`): bij het eerste openen wordt de echte voortgang éénmalig gekopieerd, daarna staan dev en productie volledig los. Testen kan de echte voortgang dus niet kapotmaken.
+- Eigen service worker, cache en manifest: dev en productie kunnen naast elkaar als app geïnstalleerd zijn.
+
+Werkwijze:
+1. Wijzig `public/dev_<app>.html` (en eventueel `dev_<app>-sw.js`), push, test op de dev-URL.
+2. Goed? `scripts/promote.sh <app>` zet de dev-versie over naar productie (haalt de dev-regel weg en zet de namen terug). Controleer `git diff`, commit, push.
+3. Productie met de hand aangepast? `scripts/make-dev.sh <app>` maakt de dev-versie opnieuw vanuit productie (overschrijft dev).
+
+Dev-voortgang opnieuw kopiëren vanuit productie: in de browserconsole `localStorage.removeItem('dev_tafelheld.v1')` en de pagina herladen.
+
 ## Privacy
 Alle voortgang staat in de browseropslag (localStorage) van het apparaat; er zijn geen cookies, geen accounts, geen analytics en geen verbindingen met andere websites.
 De lettertypes (Baloo 2 en Lexend, SIL Open Font License) staan daarom in `public/fonts/` in plaats van bij Google Fonts. Gebruik in nieuwe tools ook die bestanden.
