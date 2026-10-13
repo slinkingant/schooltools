@@ -3,7 +3,7 @@
    - Iconen en manifest: uit de cache.
    - Lettertypes staan op de eigen site en komen ook uit de cache; er gaan geen verzoeken naar andere websites.
    Verhoog VERSION bij een wijziging in dit bestand of in de lijst met vaste bestanden. */
-const VERSION = 'dev_sommenheld-v2';
+const VERSION = 'dev_sommenheld-v3';
 const SHELL = [
   '/dev_sommenheld.html',
   '/dev_sommenheld.webmanifest',
@@ -17,7 +17,9 @@ const SHELL = [
   '/fonts/baloo-2-latin-800-normal.woff2',
   '/fonts/lexend-latin-400-normal.woff2',
   '/fonts/lexend-latin-500-normal.woff2',
-  '/fonts/lexend-latin-600-normal.woff2'
+  '/fonts/lexend-latin-600-normal.woff2',
+  '/vendor/qrcode-generator-1.4.4.min.js',
+  '/vendor/jsqr-1.4.0.min.js'
 ];
 
 self.addEventListener('install', event => {

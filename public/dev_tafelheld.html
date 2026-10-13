@@ -25,6 +25,27 @@
 @font-face{font-family:"Lexend";font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/lexend-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"Lexend";font-style:normal;font-weight:500;font-display:swap;src:url(/fonts/lexend-latin-500-normal.woff2) format("woff2")}
 @font-face{font-family:"Lexend";font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/lexend-latin-600-normal.woff2) format("woff2")}
+
+/* voortgang overzetten */
+.ov-back{position:fixed;inset:0;z-index:60;background:rgba(15,23,42,.5);display:flex;justify-content:center;align-items:flex-start;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch}
+.ov-back[hidden]{display:none}
+.ov-card{width:100%;max-width:520px;margin:auto 0;gap:16px}
+.ov-qr{background:#fff;border-radius:18px;padding:8px;align-self:center;line-height:0}
+.ov-qr canvas{width:min(78vw,340px);height:auto;image-rendering:pixelated}
+.ov-cam{position:relative;border-radius:18px;overflow:hidden;background:#111;aspect-ratio:4/3}
+.ov-cam video{width:100%;height:100%;object-fit:cover;display:block}
+.ov-aim{position:absolute;inset:10% 18%;border:4px solid rgba(255,255,255,.9);border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.28);pointer-events:none}
+.ov-prog{height:12px;border-radius:99px;background:var(--line);overflow:hidden}
+.ov-prog i{display:block;height:100%;width:0;background:var(--mint);transition:width .2s}
+.ov-kids{display:flex;flex-wrap:wrap;gap:8px}
+.ov-kids button{display:inline-flex;align-items:center;gap:8px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 14px;font-weight:600;min-height:44px}
+.ov-kids button[aria-pressed="true"]{background:var(--sky);border-color:var(--sky);color:#fff}
+.ov-dot{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:0 0 0 2px #fff}
+.ov-list{display:flex;flex-direction:column;gap:8px}
+.ov-list .li{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.ov-paste summary{cursor:pointer;font-weight:600}
+.ov-paste textarea{width:100%;box-sizing:border-box;min-height:84px;margin:10px 0;border-radius:14px;border:2px solid var(--line);padding:10px;font:inherit;font-size:.85rem;background:var(--card);color:var(--ink);resize:vertical}
+.ov-big{font-size:3rem;line-height:1;text-align:center}
 </style>
 <style>
 /* Layout: lucht met stippen, snoepkleurige knoppen met dikke onderrand, mascotte "Ster" die meeleeft */
@@ -336,6 +357,7 @@ h3{font-size:1.3rem;font-weight:700}
   </div>
   <p class="muted" style="font-size:1.1rem">Wie gaat er oefenen? Tik op je naam.</p>
   <div class="profiles" id="profList"></div>
+  <div class="row" style="margin-top:16px"><button class="btn ghost small" data-ov>📲 Voortgang overzetten</button></div>
   <div class="panel stack" id="newProf" hidden style="margin-top:24px">
     <h3>Nieuw profiel</h3>
     <div class="field"><label for="newName">Naam</label><input id="newName" maxlength="16" autocomplete="off" placeholder="Bijv. Sem"></div>
@@ -458,10 +480,50 @@ h3{font-size:1.3rem;font-weight:700}
           <span id="gateMsg" class="muted" aria-live="polite"></span>
         </div>
       </div>
-      <p class="muted" style="margin:0;font-size:.88rem">Alles wordt alleen op dit apparaat bewaard, in deze browser.</p>
+      <div class="row"><button class="btn small" data-ov>📲 Voortgang overzetten</button><span class="muted" style="font-size:.88rem">Naar of van een ander apparaat, met een QR-code.</span></div>
+      <p class="muted" style="margin:0;font-size:.88rem">Alles wordt alleen op dit apparaat bewaard, in deze browser. Overzetten gaat rechtstreeks met een QR-code, niet via internet.</p>
     </div>
   </div>
 </section>
+
+<!-- VOORTGANG OVERZETTEN -->
+<div class="ov-back" id="ovBox" hidden>
+  <div class="panel stack ov-card" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
+    <div class="spread"><h3 id="ovTitle">Voortgang overzetten</h3><button class="btn ghost small" id="ovClose">Sluiten</button></div>
+    <div class="seg" id="ovSeg" style="align-self:flex-start"><button data-v="send">Versturen</button><button data-v="recv">Ontvangen</button></div>
+    <div class="stack" id="ov-send" style="gap:14px" hidden>
+      <p class="muted" id="ovNoKids" style="margin:0" hidden>Er staan nog geen kinderen op dit apparaat. Kies <b>Ontvangen</b> om voortgang van een ander apparaat op te halen.</p>
+      <div class="ov-kids" id="ovKids" aria-label="Welke kinderen?"></div>
+      <div class="stack" id="ovSendBody" style="gap:12px">
+        <p class="muted" style="margin:0">Open Tafelheld op het andere apparaat, kies <b>Voortgang overzetten → Ontvangen</b> en richt de camera op deze code.</p>
+        <div class="ov-qr" id="ovQr"><canvas width="10" height="10" aria-label="QR-code"></canvas></div>
+        <div class="muted" id="ovPart" aria-live="polite" style="text-align:center"></div>
+        <div class="row" style="justify-content:center"><button class="btn ghost small" id="ovCopy">Kopieer als tekst</button></div>
+      </div>
+    </div>
+    <div class="stack" id="ov-recv" style="gap:12px" hidden>
+      <div class="ov-cam" id="ovCam"><video id="ovVideo" playsinline muted autoplay></video><div class="ov-aim"></div></div>
+      <div class="ov-prog"><i id="ovBar"></i></div>
+      <div id="ovStatus" aria-live="polite" style="font-weight:600"></div>
+      <div class="row"><button class="btn small" id="ovRetry" hidden>Opnieuw scannen</button></div>
+      <details class="ov-paste" id="ovPasteBox"><summary>Geen camera? Plak de code</summary>
+        <textarea id="ovPaste" placeholder="Plak hier de tekst van &quot;Kopieer als tekst&quot;" autocomplete="off" spellcheck="false"></textarea>
+        <button class="btn small primary" id="ovPasteBtn">Code gebruiken</button>
+      </details>
+    </div>
+    <div class="stack" id="ov-confirm" style="gap:14px" hidden>
+      <p style="margin:0;font-weight:600">Deze voortgang wordt op dit apparaat gezet:</p>
+      <div class="ov-list" id="ovList"></div>
+      <p class="muted" id="ovWhen" style="margin:0;font-size:.88rem"></p>
+      <p class="muted" style="margin:0;font-size:.88rem">Samenvoegen is veilig: per som en per niveau blijft de beste en nieuwste stand bewaard. Er gaat niets verloren.</p>
+      <div class="row"><button class="btn go" id="ovApply">Overzetten</button><button class="btn ghost" id="ovCancel">Annuleren</button></div>
+    </div>
+    <div class="stack" id="ov-done" style="gap:14px;align-items:center;text-align:center" hidden>
+      <div class="ov-big">🎉</div><p style="margin:0;font-weight:600;font-size:1.15rem" id="ovDoneText"></p>
+      <button class="btn go" id="ovDoneBtn">Klaar</button>
+    </div>
+  </div>
+</div>
 
 <!-- VOETNOOT: app op het beginscherm zetten (alleen op de eigen website, niet als de app al geïnstalleerd is) -->
 <aside class="installnote" id="installNote" hidden>
@@ -972,12 +1034,169 @@ $('#confirmYes').onclick=()=>{const p=S.profiles.find(x=>x.id===stProf);if(!p)re
   if(confirmAct==='reset'){Object.assign(p,{facts:{},levels:{},records:{},sessions:[],ms:0,tables:{}});save();renderStats()}
   else{S.profiles=S.profiles.filter(x=>x.id!==p.id);if(S.current===p.id)S.current=null;save();stProf=null;if(!prof()){renderProfiles();show('s-profiles')}else renderStats()}};
 
+/* ---------- voortgang overzetten (QR-code, zonder internet) ----------
+   Versturen: de gekozen profielen gaan als JSON → deflate → base64url in één of meer QR-codes.
+   Elke code is een link <deze pagina>#ov=<id>.<deel>.<aantal>.<data>; meerdere delen wisselen elkaar af.
+   Ontvangen: camera (BarcodeDetector als die er is, anders jsQR) of geplakte tekst.
+   Samenvoegen gaat per som/niveau: er gaat nooit voortgang verloren en niets wordt dubbel geteld. */
+const OV_APP='tafelheld',OV_NAME='Tafelheld',OV_CHUNK=480,OV_MS=500;
+const OV_LIB={qr:'/vendor/qrcode-generator-1.4.4.min.js',scan:'/vendor/jsqr-1.4.0.min.js'};
+const OV_RULES={facts:'cnt',lvs:'cnt',tables:'fsrs',lv:'fsrs',levels:'max',steps:'max',records:'max',sessions:'sess',ms:'max',recent:'list'};
+const ov={tok:0,sel:null,frames:[],fi:0,timer:0,stream:null,raf:0,parts:null,pid:null,pn:0,data:null,det:null};
+
+function ovLoad(src){return new Promise((ok,fail)=>{if(document.querySelector(`script[src="${src}"]`)&&(src===OV_LIB.qr?window.qrcode:window.jsQR))return ok();const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>fail(new Error('laden mislukt'));document.head.appendChild(s)})}
+const ovB64=u8=>{let s='';for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const ovUnB64=s=>{const b=atob(s.replace(/-/g,'+').replace(/_/g,'/'));const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
+async function ovPack(obj){
+  const bytes=new TextEncoder().encode(JSON.stringify(obj,(k,v)=>typeof v==='number'&&!Number.isInteger(v)?Math.round(v*1e4)/1e4:v));
+  try{if(window.CompressionStream){const st=new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));return 'z'+ovB64(new Uint8Array(await new Response(st).arrayBuffer()))}}catch(e){}
+  return 'j'+ovB64(bytes)}
+async function ovUnpack(s){
+  let bytes=ovUnB64(s.slice(1));
+  if(s[0]==='z'){if(!window.DecompressionStream)throw new Error('Deze browser is te oud om de code te lezen.');const st=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));bytes=new Uint8Array(await new Response(st).arrayBuffer())}
+  else if(s[0]!=='j')throw new Error('Onbekende code.');
+  return JSON.parse(new TextDecoder().decode(bytes))}
+
+/* ----- samenvoegen ----- */
+function ovMax(x,y){
+  if(Array.isArray(x)&&Array.isArray(y)){const o=[];for(let i=0;i<Math.max(x.length,y.length);i++)o[i]=ovMax(x[i],y[i]);return o}
+  if(typeof x==='number'||typeof y==='number')return Math.max(+x||0,+y||0);
+  if(x&&y&&typeof x==='object'){const o={...x};for(const k in y)o[k]=k in x?ovMax(x[k],y[k]):y[k];return o}
+  return x??y}
+const ovTries=f=>(f&&(f.g||0)+(f.f||0))||0;
+function ovMerge(a,b){
+  for(const k of Object.keys(b)){
+    const x=a[k],y=b[k];if(y==null||k==='id'||k==='demo')continue;if(x==null){a[k]=y;continue}
+    switch(OV_RULES[k]){
+      case 'cnt':for(const id in y)if(ovTries(y[id])>ovTries(x[id]))x[id]=y[id];break;            /* meeste pogingen = nieuwste stand */
+      case 'fsrs':for(const id in y){const p=x[id],q=y[id];if(!p){x[id]=q;continue}               /* laatst herhaald telt, sterren gaan nooit omlaag */
+        const n=((q.lr||0)>(p.lr||0)||((q.lr||0)===(p.lr||0)&&(q.reps||0)>(p.reps||0)))?{...q}:{...p};
+        n.stars=Math.max(p.stars||0,q.stars||0);n.passed=!!(p.passed||q.passed);n.best=Math.max(p.best||0,q.best||0);x[id]=n}break;
+      case 'max':a[k]=ovMax(x,y);break;
+      case 'sess':{const key=s=>s.d+'|'+s.mode,seen=new Set(x.map(key));a[k]=[...x,...y.filter(s=>!seen.has(key(s)))].sort((p,q)=>q.d-p.d).slice(0,60);break}
+      case 'list':a[k]=[...x,...y.filter(v=>!x.includes(v))].slice(0,30);break;
+      /* overige velden (naam, kleur, instellingen): die van dit apparaat blijven staan */
+    }}
+  return a}
+function ovFix(p){
+  if(typeof fixProfile==='function'){fixProfile(p);return p}
+  ['facts','levels','records','last','tables'].forEach(k=>{if(!p[k]||typeof p[k]!=='object')p[k]={}});if(!Array.isArray(p.sessions))p.sessions=[];if(typeof p.ms!=='number')p.ms=0;return p}
+function ovClean(q){
+  if(!q||typeof q!=='object'||typeof q.id!=='string'||typeof q.name!=='string')return null;
+  const p=JSON.parse(JSON.stringify(q));delete p.demo;
+  p.id=p.id.slice(0,24);p.name=p.name.trim().slice(0,16)||'Kind';
+  if(!/^#[0-9a-fA-F]{6}$/.test(p.color||''))p.color=COLORS[0];
+  return ovFix(p)}
+const ovMatch=q=>S.profiles.find(p=>!p.demo&&p.id===q.id)||S.profiles.find(p=>!p.demo&&p.name.trim().toLowerCase()===q.name.trim().toLowerCase());
+
+/* ----- dialoog ----- */
+function ovView(v){['send','recv','confirm','done'].forEach(n=>$('#ov-'+n).hidden=n!==v);$('#ovSeg').hidden=v==='confirm'||v==='done';
+  $('#ovSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
+  if(v!=='send')ovStopFrames();if(v!=='recv')ovStopCam()}
+function ovOpen(view){
+  $('#ovBox').hidden=false;document.body.style.overflow='hidden';
+  const kids=S.profiles.filter(p=>!p.demo);
+  if(!ov.sel)ov.sel=new Set(kids.map(p=>p.id));
+  if(view==='recv'||!kids.length){ovView('recv');$('#ovRetry').hidden=true;ovStartCam()}else{ovView('send');ovRenderSend()}}
+function ovClose(){ovStopFrames();ovStopCam();$('#ovBox').hidden=true;document.body.style.overflow='';ov.data=null}
+
+async function ovRenderSend(){
+  const kids=S.profiles.filter(p=>!p.demo);
+  $('#ovKids').innerHTML=kids.length?kids.map(p=>`<button data-id="${esc(p.id)}" aria-pressed="${ov.sel.has(p.id)}"><span class="ov-dot" style="background:${p.color}"></span>${esc(p.name)}</button>`).join(''):'';
+  const chosen=kids.filter(p=>ov.sel.has(p.id));
+  $('#ovNoKids').hidden=!!kids.length;$('#ovSendBody').hidden=!chosen.length;
+  ovStopFrames();if(!chosen.length)return;
+  $('#ovPart').textContent='Code maken…';
+  try{await ovLoad(OV_LIB.qr)}catch(e){$('#ovPart').textContent='De QR-code kon niet geladen worden. Gebruik "Kopieer als tekst".'}
+  const data=await ovPack({v:1,app:OV_APP,at:Date.now(),profiles:chosen.map(p=>{const c=JSON.parse(JSON.stringify(p));delete c.demo;return c})});
+  const id=Math.random().toString(36).slice(2,6),base=location.origin+location.pathname+'#ov=',n=Math.max(1,Math.ceil(data.length/OV_CHUNK));
+  ov.copy=`${base}${id}.1.1.${data}`;
+  ov.frames=[];
+  if(window.qrcode)for(let i=0;i<n;i++){const q=qrcode(0,'M');q.addData(`${base}${id}.${i+1}.${n}.${data.slice(i*OV_CHUNK,(i+1)*OV_CHUNK)}`,'Byte');q.make();ov.frames.push(q)}
+  ov.fi=0;ovDrawFrame();if(ov.frames.length>1)ov.timer=setInterval(()=>{ov.fi=(ov.fi+1)%ov.frames.length;ovDrawFrame()},OV_MS)}
+function ovDrawFrame(){
+  const q=ov.frames[ov.fi];if(!q)return;const cv=$('#ovQr canvas'),m=q.getModuleCount(),cell=Math.max(3,Math.floor(600/(m+8))),sz=(m+8)*cell,c=cv.getContext('2d');
+  cv.width=cv.height=sz;c.fillStyle='#fff';c.fillRect(0,0,sz,sz);c.fillStyle='#000';
+  for(let r=0;r<m;r++)for(let k=0;k<m;k++)if(q.isDark(r,k))c.fillRect((k+4)*cell,(r+4)*cell,cell,cell);
+  $('#ovPart').textContent=ov.frames.length>1?`De code wisselt: deel ${ov.fi+1} van ${ov.frames.length}. Houd de camera stil tot alle delen binnen zijn.`:'Eén code: even richten en klaar.'}
+function ovStopFrames(){clearInterval(ov.timer);ov.timer=0}
+
+/* ----- ontvangen ----- */
+function ovResetParts(){ov.parts=null;ov.pid=null;ov.pn=0;$('#ovBar').style.width='0%'}
+async function ovStartCam(){
+  ovStopCam();ovResetParts();const st=$('#ovStatus'),tok=++ov.tok;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){st.textContent='Op dit apparaat kan de camera hier niet gebruikt worden. Plak de code hieronder.';$('#ovCam').hidden=true;$('#ovPasteBox').open=true;return}
+  $('#ovCam').hidden=false;st.textContent='Camera starten…';
+  try{
+    if('BarcodeDetector' in window){try{if((await BarcodeDetector.getSupportedFormats()).includes('qr_code'))ov.det=new BarcodeDetector({formats:['qr_code']})}catch(e){}}
+    if(!ov.det)await ovLoad(OV_LIB.scan);
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false});
+    if(tok!==ov.tok||$('#ov-recv').hidden||$('#ovBox').hidden){stream.getTracks().forEach(t=>t.stop());return}
+    ov.stream=stream;
+    const v=$('#ovVideo');v.srcObject=ov.stream;await v.play();
+    st.textContent='Richt de camera op de QR-code op het andere apparaat.';ovScanLoop();
+  }catch(e){if(tok!==ov.tok)return;ovStopCam();$('#ovCam').hidden=true;$('#ovPasteBox').open=true;
+    st.textContent=e&&e.name==='NotAllowedError'?'Geen toestemming voor de camera. Sta de camera toe in de instellingen, of plak de code hieronder.':'De camera kon niet starten. Plak de code hieronder.'}}
+function ovStopCam(){clearTimeout(ov.raf);if(ov.stream){ov.stream.getTracks().forEach(t=>t.stop());ov.stream=null}const v=$('#ovVideo');if(v)v.srcObject=null}
+const ovCv=document.createElement('canvas'),ovCx=ovCv.getContext('2d',{willReadFrequently:true});
+async function ovScanLoop(){
+  if(!ov.stream)return;const v=$('#ovVideo');
+  try{if(v.readyState>=2&&v.videoWidth){
+    if(ov.det){const r=await ov.det.detect(v);r.forEach(x=>ovIngest(x.rawValue))}
+    else{const sc=Math.min(1,800/Math.max(v.videoWidth,v.videoHeight)),w=Math.round(v.videoWidth*sc),h=Math.round(v.videoHeight*sc);
+      ovCv.width=w;ovCv.height=h;ovCx.drawImage(v,0,0,w,h);const r=jsQR(ovCx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:'dontInvert'});if(r&&r.data)ovIngest(r.data)}}}catch(e){}
+  if(ov.stream)ov.raf=setTimeout(ovScanLoop,90)}
+function ovParse(t){const m=/#ov=([a-z0-9]{1,8})\.(\d{1,3})\.(\d{1,3})\.([A-Za-z0-9_-]+)/.exec(String(t||'').replace(/\s+/g,''));if(!m)return null;const i=+m[2],n=+m[3];if(!n||i<1||i>n)return null;return{id:m[1],i,n,d:m[4]}}
+function ovIngest(t){
+  const p=ovParse(t);if(!p)return false;
+  if(ov.pid!==p.id){ov.pid=p.id;ov.pn=p.n;ov.parts=new Map()}
+  if(!ov.parts.has(p.i)){ov.parts.set(p.i,p.d);try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
+  const got=ov.parts.size;$('#ovBar').style.width=Math.round(got/ov.pn*100)+'%';
+  $('#ovStatus').textContent=ov.pn>1?`${got} van ${ov.pn} delen binnen…`:'Code gevonden!';
+  if(got===ov.pn){const data=[...Array(ov.pn)].map((_,i)=>ov.parts.get(i+1)).join('');ovStopCam();ovResetParts();ovReceive(data)}
+  return true}
+async function ovReceive(data){
+  let o;try{o=await ovUnpack(data)}catch(e){ovFail(e.message&&/oud|Onbekend/.test(e.message)?e.message:'De code kon niet gelezen worden. Probeer het opnieuw.');return}
+  if(!o||o.v!==1||!Array.isArray(o.profiles)){ovFail('Dit is geen geldige code.');return}
+  if(o.app!==OV_APP){ovFail(`Deze code is niet van ${OV_NAME}.`);return}
+  const list=o.profiles.map(ovClean).filter(Boolean);if(!list.length){ovFail('Er staan geen kinderen in deze code.');return}
+  ov.data=list;
+  $('#ovList').innerHTML=list.map(q=>{const m=ovMatch(q);return`<div class="li"><span><span class="ov-dot" style="background:${q.color}"></span><b>${esc(q.name)}</b></span><span class="muted">${m?'wordt samengevoegd met '+esc(m.name):'nieuw op dit apparaat'}</span></div>`}).join('');
+  $('#ovWhen').textContent=o.at?'Code gemaakt op '+new Date(o.at).toLocaleString('nl-NL',{dateStyle:'medium',timeStyle:'short'})+'.':'';
+  ovView('confirm')}
+function ovFail(msg){ovView('recv');$('#ovStatus').textContent=msg;$('#ovRetry').hidden=false}
+function ovApply(){
+  const list=ov.data||[];let added=0,merged=0;
+  list.forEach(q=>{const m=ovMatch(q);if(m){ovMerge(m,q);ovFix(m);merged++}else{if(S.profiles.some(p=>p.id===q.id))q.id=q.id+Math.random().toString(36).slice(2,5);S.profiles.push(q);added++}});
+  save();ov.data=null;
+  $('#ovDoneText').textContent=[added?`${added} ${added===1?'kind':'kinderen'} toegevoegd`:'',merged?`${merged} ${merged===1?'kind':'kinderen'} bijgewerkt`:''].filter(Boolean).join(' en ')+'.';
+  ovView('done');try{burst(innerWidth/2,innerHeight/3,40)}catch(e){}
+  renderProfiles();if(!$('#s-stats').hidden)renderStats();else if(!$('#s-menu').hidden&&prof())renderMenu()}
+
+document.addEventListener('click',e=>{if(e.target.closest('[data-ov]'))ovOpen()});
+$('#ovClose').onclick=ovClose;$('#ovDoneBtn').onclick=ovClose;
+$('#ovBox').addEventListener('click',e=>{if(e.target.id==='ovBox')ovClose()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#ovBox').hidden)ovClose()});
+$('#ovSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.v==='send'){ovView('send');ovRenderSend()}else{ovView('recv');$('#ovRetry').hidden=true;ovStartCam()}});
+$('#ovKids').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;ov.sel.has(id)?ov.sel.delete(id):ov.sel.add(id);ovRenderSend()});
+$('#ovCopy').onclick=async()=>{const b=$('#ovCopy');try{if(navigator.share&&matchMedia('(pointer:coarse)').matches){await navigator.share({title:`${OV_NAME}: voortgang`,text:ov.copy});return}await navigator.clipboard.writeText(ov.copy);b.textContent='Gekopieerd!'}catch(e){if(e&&e.name==='AbortError')return;$('#ovPaste').value=ov.copy;b.textContent='Kopiëren lukte niet'}setTimeout(()=>b.textContent='Kopieer als tekst',1800)};
+$('#ovPasteBtn').onclick=()=>{const t=$('#ovPaste').value;if(!ovParse(t)){$('#ovStatus').textContent='Dit lijkt geen overzet-code. Kopieer de hele tekst.';return}ovIngest(t);$('#ovPaste').value=''};
+$('#ovRetry').onclick=()=>{$('#ovRetry').hidden=true;ovStartCam()};
+$('#ovApply').onclick=ovApply;
+$('#ovCancel').onclick=()=>{ov.data=null;ovView('recv');$('#ovRetry').hidden=true;ovStartCam()};
+/* link geopend met #ov=… (bijvoorbeeld vanuit de camera-app of een geplakte link) */
+function ovFromHash(){
+  const p=ovParse(location.hash);if(!p)return;try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+  $('#ovBox').hidden=false;document.body.style.overflow='hidden';ovView('recv');
+  if(p.n===1)ovIngest('#ov='+p.id+'.1.1.'+p.d);else ovStartCam()}
+
 /* ---------- start ---------- */
 if(!S.profiles.length)S.profiles.push(makeDemo());
 S.profiles.forEach(p=>{if(!p.tables)p.tables={}});save();
 /* eerst de profielen tonen; versiering pas daarna, zodat een fout daarin het scherm niet leeg laat */
 renderProfiles();
 if(prof()){renderMenu();show('s-menu')}else show('s-profiles');
+try{ovFromHash()}catch(e){}
 try{drawMascots()}catch(e){}
 sizeFx();
 })();

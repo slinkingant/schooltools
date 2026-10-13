@@ -20,6 +20,19 @@ Werkwijze:
 
 Dev-voortgang opnieuw kopiëren vanuit productie: in de browserconsole `localStorage.removeItem('dev_tafelheld.v1')` en de pagina herladen.
 
+## Voortgang overzetten (QR-code) — nu alleen in de dev-versies
+Knop **📲 Voortgang overzetten** op het profielenscherm en bij Statistieken → Profiel beheren.
+- **Versturen**: kies de kinderen; de voortgang wordt gecomprimeerd (deflate) en getoond als QR-code. Past het niet in één code, dan wisselen meerdere codes elkaar af (elke 0,5 s) en verzamelt de ontvanger alle delen.
+- **Ontvangen**: camera in de app (BarcodeDetector waar beschikbaar, anders jsQR), of plak de tekst van "Kopieer als tekst". Een code van één deel werkt ook als link (`…#ov=…`).
+- **Samenvoegen** in plaats van overschrijven, per kind (zelfde id of zelfde naam):
+  - sommen (`facts`, `lvs`): de stand met de meeste pogingen;
+  - herhaalplanning (`tables`, `lv`): de laatst herhaalde; sterren, `passed` en `best` gaan nooit omlaag;
+  - niveaus/stappen, records, oefentijd: het hoogste;
+  - sessies: samengevoegd op tijdstip (max. 60); naam, kleur en instellingen van het ontvangende apparaat blijven staan.
+  Nogmaals dezelfde code ontvangen verandert niets.
+- Er gaat niets via internet: de QR-bibliotheken staan in `public/vendor/` (qrcode-generator, MIT; jsQR, Apache-2.0) en zitten in de cache van de service worker.
+- Handig op de iPad: voortgang die in Safari is opgebouwd kan zo ook naar de app op het beginscherm (die hebben gescheiden opslag).
+
 ## Privacy
 Alle voortgang staat in de browseropslag (localStorage) van het apparaat; er zijn geen cookies, geen accounts, geen analytics en geen verbindingen met andere websites.
 De lettertypes (Baloo 2 en Lexend, SIL Open Font License) staan daarom in `public/fonts/` in plaats van bij Google Fonts. Gebruik in nieuwe tools ook die bestanden.
