@@ -48,6 +48,10 @@
 .ov-paste textarea{width:100%;box-sizing:border-box;min-height:84px;margin:10px 0;border-radius:14px;border:2px solid var(--line);padding:10px;font:inherit;font-size:.85rem;background:var(--card);color:var(--ink);resize:vertical}
 .ov-ask{gap:12px;padding:16px;border-radius:18px;background:color-mix(in srgb,var(--sky) 10%,var(--card))}
 .ov-big{font-size:3rem;line-height:1;text-align:center}
+
+/* update-balk */
+.updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:55;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;width:max-content;max-width:calc(100% - 32px);box-sizing:border-box;background:var(--card);color:var(--ink);border-radius:20px;padding:12px 16px;box-shadow:0 6px 0 var(--line),0 12px 30px rgba(0,0,0,.18);font-weight:600}
+.updbar[hidden]{display:none}
 </style>
 <style>
 /* Layout: muntgroen met stippen, snoepkleurige knoppen met dikke onderrand, mascotte "Ster" die meeleeft (gedeeld met Tafelheld) */
@@ -518,10 +522,14 @@ h3{font-size:1.3rem;font-weight:700}
         </div>
       </div>
       <div class="row"><button class="btn small" data-ov>📲 Voortgang overzetten</button><span class="muted" style="font-size:.88rem">Naar of van een ander apparaat, met een QR-code.</span></div>
+      <div class="row"><span class="muted" id="updInfo" style="font-size:.88rem"></span><button class="btn ghost small" id="updCheckBtn">Zoek naar update</button><span class="muted" id="updMsg" aria-live="polite" style="font-size:.88rem"></span></div>
       <p class="muted" style="margin:0;font-size:.88rem">Alles wordt alleen op dit apparaat bewaard, in deze browser. Overzetten gaat rechtstreeks met een QR-code, niet via internet.</p>
     </div>
   </div>
 </section>
+
+<!-- UPDATE-BALK -->
+<div class="updbar" id="updBar" role="status" hidden><span>✨ Er is een nieuwe versie van Sommenheld.</span><button class="btn small go" id="updGo">Bijwerken</button><button class="btn small ghost" id="updLater">Later</button></div>
 
 <!-- VOORTGANG OVERZETTEN -->
 <div class="ov-back" id="ovBox" hidden>
@@ -1323,6 +1331,37 @@ function ovFromHash(){
   $('#ovBox').hidden=false;document.body.style.overflow='hidden';ovView('recv');ovRecvIdle();
   if(p.n===1)ovIngest(location.origin+'/#ov='+p.id.slice(1)+'.1.1.'+p.d)}
 addEventListener('hashchange',()=>{try{ovFromHash()}catch(e){}});
+
+/* ---------- updates ----------
+   Bij het bouwen (scripts/build.mjs) wordt __BUILD__ vervangen door "<versie>|<datum>" en komt de nieuwste versie in /version.json.
+   De app kijkt daar bij het starten, bij terugkomen op de voorgrond, als er weer internet is en elk halfuur.
+   Is er een nieuwere versie, dan verschijnt een balk "Bijwerken" — nooit tijdens het oefenen. */
+const UPD_KEY='dev_sommenheld',UPD_RAW='__BUILD__',UPD_ON=!UPD_RAW.startsWith('__'),UPD_V=UPD_ON?UPD_RAW.split('|')[0]:'',UPD_DATE=UPD_ON?UPD_RAW.split('|')[1]:'';
+const upd={last:0,ready:null};
+const updBusy=()=>!$('#s-play').hidden;
+async function updCheck(force){
+  if(!UPD_ON)return 'local';
+  if(!force&&Date.now()-upd.last<6e4)return 'skip';upd.last=Date.now();
+  try{
+    const r=await fetch('/version.json',{cache:'no-store'});if(!r.ok)return 'err';
+    const n=(await r.json())[UPD_KEY];if(!n||!n.v||n.v===UPD_V)return 'same';
+    upd.ready=n;updShow();
+    try{const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();if(reg)reg.update()}catch(e){}
+    return 'new'
+  }catch(e){return 'err'}}
+function updShow(){$('#updBar').hidden=!upd.ready||updBusy()}
+function updInfo(){const d=UPD_DATE&&new Date(UPD_DATE);$('#updInfo').textContent=UPD_ON?`Versie ${UPD_V}${d&&!isNaN(d)?' · '+d.toLocaleString('nl-NL',{dateStyle:'medium',timeStyle:'short'}):''}`:'Versie: lokale kopie (niet gebouwd)'}
+new MutationObserver(updShow).observe($('#s-play'),{attributes:true,attributeFilter:['hidden']});
+$('#updGo').onclick=async()=>{const b=$('#updGo');b.disabled=true;b.textContent='Bijwerken…';
+  try{const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();if(reg)await Promise.race([reg.update(),new Promise(r=>setTimeout(r,3000))])}catch(e){}
+  location.reload()};
+$('#updLater').onclick=()=>{$('#updBar').hidden=true;upd.ready=null};
+$('#updCheckBtn').onclick=async()=>{const m=$('#updMsg');m.textContent='Even kijken…';const r=await updCheck(true);
+  m.textContent={new:'Er is een nieuwe versie! Tik onderin op Bijwerken.',same:'Je hebt de nieuwste versie.',local:'Dit is een lokale kopie zonder versienummer.'}[r]||'Controleren lukte niet. Is er internet?'};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')updCheck()});
+addEventListener('online',()=>updCheck());
+setInterval(()=>{if(document.visibilityState==='visible')updCheck()},30*6e4);
+updInfo();setTimeout(updCheck,3000);
 
 /* ---------- start ---------- */
 if(!S.profiles.length)S.profiles.push(makeDemo());

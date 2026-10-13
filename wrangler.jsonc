@@ -1,7 +1,9 @@
 {
   "name": "schooltools",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./public" },
+  // scripts/build.mjs kopieert public/ naar dist/ en zet versienummers in de apps
+  "build": { "command": "node scripts/build.mjs" },
+  "assets": { "directory": "./dist" },
   "routes": [
     { "pattern": "school.1394.nl", "custom_domain": true }
   ]
