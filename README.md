@@ -26,7 +26,7 @@ Knop **📲 Voortgang overzetten** op het profielenscherm en bij Statistieken �
   - Compact formaat (v2): lijsten van gelijke objecten als kolommen, sleutels gesorteerd en front-coded, tijdstippen in minuten, bedenktijd in tienden van seconden, kommagetallen op 2 decimalen; `sched` en `elapsed` (worden nergens gelezen) gaan niet mee.
   - Daarna deflate en **base45** in de alfanumerieke QR-modus: `OV2<T|S><Z|J>:<id>:<deel>:<aantal>:<data>`, max. 470 bytes per code (QR-versie 17, foutcorrectie M).
   - Resultaat met het voorbeeldprofiel: Tafelheld 7 → 3 codes, Sommenheld 9 → 4 voor twee kinderen.
-- **Ontvangen**: camera in de app (BarcodeDetector waar beschikbaar, anders jsQR), of plak de tekst van "Kopieer als tekst". Die tekst is een link (`…#ov=<id>.1.1.y<base64url>`) die ook direct te openen is; oude v1-links (`…z…`) werken nog. De QR-code zelf is geen link meer, dus scannen kan alleen in de app.
+- **Ontvangen**: de camera gaat pas aan na een tik op **Camera openen** (ook na annuleren of een fout eerst weer die vraag). Scannen met BarcodeDetector waar beschikbaar, anders jsQR. Zonder camera: plak de tekst van "Kopieer als tekst"; dat is een link (`…#ov=<id>.1.1.y<base64url>`) die ook direct te openen is. De QR-code zelf is geen link, dus scannen kan alleen in de app. Alleen het huidige formaat (v2) wordt ondersteund.
 - **Samenvoegen** in plaats van overschrijven, per kind (zelfde id of zelfde naam):
   - sommen (`facts`, `lvs`): de stand met de meeste pogingen;
   - herhaalplanning (`tables`, `lv`): de laatst herhaalde; sterren, `passed` en `best` gaan nooit omlaag;
