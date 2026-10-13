@@ -372,7 +372,7 @@ h3{font-size:1.3rem;font-weight:700}
 <section class="screen" id="s-menu" hidden>
   <div class="topbar">
     <div class="who"><span class="av sm" id="mAv"></span><div><h2 id="mHello"></h2><div class="muted" id="mSub"></div></div></div>
-    <div class="row"><button class="btn ghost small" id="soundBtn"></button><button class="btn ghost small" id="switchBtn">Ander kind</button><a class="btn ghost small homebtn" data-home href="https://school.1394.nl/" hidden>← Schooltools</a></div>
+    <div class="row"><button class="btn ghost small" id="soundBtn"></button><button class="btn ghost small" id="switchBtn">Ander kind</button><button class="btn ghost small" data-ov="kind">📲 Overzetten</button><a class="btn ghost small homebtn" data-home href="https://school.1394.nl/" hidden>← Schooltools</a></div>
   </div>
   <div class="tiles">
     <button class="tile c5 wide" data-go="mastery" id="mtTile" hidden><span class="sum">Meestertoets</span><h3 id="mtTileT"></h3><p>50 sommen, allemaal goed? Dan verdien je ster 4!</p></button>
@@ -1126,10 +1126,10 @@ const ovMatch=q=>S.profiles.find(p=>!p.demo&&p.id===q.id)||S.profiles.find(p=>!p
 function ovView(v){['send','recv','confirm','done'].forEach(n=>$('#ov-'+n).hidden=n!==v);$('#ovSeg').hidden=v==='confirm'||v==='done';
   $('#ovSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
   if(v!=='send')ovStopFrames();if(v!=='recv')ovStopCam()}
-function ovOpen(view){
+function ovOpen(view,kidOnly){
   $('#ovBox').hidden=false;document.body.style.overflow='hidden';
-  const kids=S.profiles.filter(p=>!p.demo);
-  if(!ov.sel)ov.sel=new Set(kids.map(p=>p.id));
+  const kids=S.profiles.filter(p=>!p.demo),cur=kidOnly&&prof();
+  ov.sel=new Set(cur&&!cur.demo?[cur.id]:kids.map(p=>p.id));
   if(view==='recv'||!kids.length){ovView('recv');ovRecvIdle()}else{ovView('send');ovRenderSend()}}
 function ovClose(){ovStopFrames();ovStopCam();$('#ovBox').hidden=true;document.body.style.overflow='';ov.data=null}
 
@@ -1212,7 +1212,7 @@ function ovApply(){
   ovView('done');try{burst(innerWidth/2,innerHeight/3,40)}catch(e){}
   renderProfiles();if(!$('#s-stats').hidden)renderStats();else if(!$('#s-menu').hidden&&prof())renderMenu()}
 
-document.addEventListener('click',e=>{if(e.target.closest('[data-ov]'))ovOpen()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-ov]');if(b)ovOpen(null,b.dataset.ov==='kind')});
 $('#ovClose').onclick=ovClose;$('#ovDoneBtn').onclick=ovClose;
 $('#ovBox').addEventListener('click',e=>{if(e.target.id==='ovBox')ovClose()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#ovBox').hidden)ovClose()});

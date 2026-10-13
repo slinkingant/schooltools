@@ -21,7 +21,7 @@ Werkwijze:
 Dev-voortgang opnieuw kopiëren vanuit productie: in de browserconsole `localStorage.removeItem('dev_tafelheld.v1')` en de pagina herladen.
 
 ## Voortgang overzetten (QR-code) — nu alleen in de dev-versies
-Knop **📲 Voortgang overzetten** op het profielenscherm en bij Statistieken → Profiel beheren.
+Knop **📲 Voortgang overzetten** op het profielenscherm (alle kinderen geselecteerd), op de kindpagina (**📲 Overzetten**, alleen dat kind geselecteerd) en bij Statistieken → Profiel beheren.
 - **Versturen**: kies de kinderen; de voortgang wordt compact gemaakt en gecomprimeerd en getoond als QR-code. Past het niet in één code, dan wisselen meerdere codes elkaar af (elke 0,5 s) en verzamelt de ontvanger alle delen.
   - Compact formaat (v2): lijsten van gelijke objecten als kolommen, sleutels gesorteerd en front-coded, tijdstippen in minuten, bedenktijd in tienden van seconden, kommagetallen op 2 decimalen; `sched` en `elapsed` (worden nergens gelezen) gaan niet mee.
   - Daarna deflate en **base45** in de alfanumerieke QR-modus: `OV2<T|S><Z|J>:<id>:<deel>:<aantal>:<data>`, max. 470 bytes per code (QR-versie 17, foutcorrectie M).
