@@ -26,13 +26,13 @@ Dev-voortgang opnieuw kopiëren vanuit productie: in de browserconsole `localSto
 - In elke app met `__BUILD__` komt de versie: de eerste 8 tekens van een hash over de app en zijn service worker, plus de datum van de laatste commit van die app. Alleen een app die echt veranderd is krijgt dus een nieuwe versie.
 - `dist/version.json` bevat per app de nieuwste versie.
 
-## Updates (nu alleen in de dev-versies)
+## Updates
 - De app vergelijkt zijn eigen versie met `/version.json`: 3 s na het starten, bij terugkomen op de voorgrond, als er weer internet is en elk halfuur (hoogstens één keer per minuut).
 - Nieuwere versie → balk onderin **"Er is een nieuwe versie — Bijwerken / Later"**. Tijdens het oefenen (scherm `s-play`) blijft de balk weg tot het kind klaar is. Bijwerken laat de service worker bijwerken en herlaadt de app; de voortgang blijft staan.
 - Bij Statistieken → Profiel beheren staan de geïnstalleerde versie en datum, met een knop **Zoek naar update**.
 - Lokaal zonder bouwen (bijv. `public/` direct openen) staat er "lokale kopie" en wordt niet gecontroleerd.
 
-## Voortgang overzetten (QR-code) — nu alleen in de dev-versies
+## Voortgang overzetten (QR-code)
 Knop **📲 Voortgang overzetten** op het profielenscherm (alle kinderen geselecteerd), op de kindpagina (**📲 Overzetten**, alleen dat kind geselecteerd) en bij Statistieken → Profiel beheren.
 - **Versturen**: kies de kinderen; de voortgang wordt compact gemaakt en gecomprimeerd en getoond als QR-code. Past het niet in één code, dan wisselen meerdere codes elkaar af (elke 0,5 s) en verzamelt de ontvanger alle delen.
   - Compact formaat (v2): lijsten van gelijke objecten als kolommen, sleutels gesorteerd en front-coded, tijdstippen in minuten, bedenktijd in tienden van seconden, kommagetallen op 2 decimalen; `sched` en `elapsed` (worden nergens gelezen) gaan niet mee.
